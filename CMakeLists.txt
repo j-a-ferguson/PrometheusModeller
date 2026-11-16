@@ -15,10 +15,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(Armadillo CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 
-add_library(prometheus_modeller STATIC src/modeller.cpp)
+add_library(prometheus_modeller STATIC
+    src/modeller.cpp
+    src/geometry/curves.cpp
+)
 target_include_directories(prometheus_modeller
-    PUBLIC include
-    PRIVATE src
+    PUBLIC include src
 )
 target_link_libraries(prometheus_modeller PUBLIC
     armadillo
@@ -29,10 +31,16 @@ include(CTest)
 if(BUILD_TESTING)
     find_package(GTest CONFIG REQUIRED)
     add_executable(prometheus_modeller_tests tests/modeller_test.cpp)
+    add_executable(curve_tests tests/curve_test.cpp)
     target_link_libraries(prometheus_modeller_tests PRIVATE
+        prometheus_modeller
+        GTest::gtest_main
+    )
+    target_link_libraries(curve_tests PRIVATE
         prometheus_modeller
         GTest::gtest_main
     )
     include(GoogleTest)
     gtest_discover_tests(prometheus_modeller_tests)
+    gtest_discover_tests(curve_tests)
 endif()
