@@ -1,7 +1,7 @@
 #ifndef CURVES_HPP_
 #define CURVES_HPP_
 
-#include <common.hpp>
+#include <prometheus/common.hpp>
 
 #include <utility>
 

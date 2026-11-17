@@ -1,5 +1,5 @@
-#include <geometry/surfaces.hpp>
-#include <geometry/utils.hpp>
+#include <surfaces.hpp>
+#include "utils.hpp"
 
 #include <cmath>
 #include <limits>
@@ -42,6 +42,7 @@ Vec3 Surface::normal(double u, double v, bool normalize) const {
     const Vec3 normal = arma::cross(diff(u, v, 1, 0), diff(u, v, 0, 1));
     return normalize ? utils::unit_vector(normal) : normal;
 }
+//.................................................................................................
 
 Plane::Plane(const Vec3& origin, const Vec3& normal)
     : origin_(origin), x_axis_(utils::orthogonal_vector(normal)),
@@ -66,6 +67,7 @@ Vec3 Plane::diff(double u, double v, int order_u, int order_v) const {
     }
     return Vec3(arma::fill::zeros);
 }
+//.................................................................................................
 
 Cone::Cone(const Vec3& center, const Vec3& axis, double height, double radius_bottom,
            double radius_top)
@@ -112,6 +114,7 @@ std::pair<double, double> Cone::param_range_u() const {
 std::pair<double, double> Cone::param_range_v() const {
     return {0.0, height_};
 }
+//.................................................................................................
 
 Cylinder::Cylinder(const Vec3& center, const Vec3& axis, double radius)
     : center_(center), axis_(axis), x_axis_(utils::orthogonal_vector(axis)),
@@ -141,6 +144,7 @@ Vec3 Cylinder::diff(double u, double v, int order_u, int order_v) const {
 std::pair<double, double> Cylinder::param_range_u() const {
     return {0.0, utils::two_pi};
 }
+//.................................................................................................
 
 Torus::Torus(const Vec3& center, const Vec3& axis, double major_radius, double minor_radius)
     : center_(center), x_axis_(utils::orthogonal_vector(axis)), y_axis_(arma::cross(x_axis_, axis)),
@@ -180,6 +184,8 @@ std::pair<double, double> Torus::param_range_u() const {
 std::pair<double, double> Torus::param_range_v() const {
     return {0.0, utils::two_pi};
 }
+//.................................................................................................
+
 
 Sphere::Sphere(const Vec3& center, double radius, const Vec3& polar_axis)
     : center_(center), x_axis_(utils::orthogonal_vector(polar_axis)),
@@ -214,5 +220,6 @@ std::pair<double, double> Sphere::param_range_u() const {
 std::pair<double, double> Sphere::param_range_v() const {
     return {-std::numbers::pi / 2.0, std::numbers::pi / 2.0};
 }
+//.................................................................................................
 
 } // namespace prometheus::geometry

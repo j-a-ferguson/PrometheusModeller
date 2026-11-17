@@ -1,5 +1,5 @@
-#include <geometry/curves.hpp>
-#include <geometry/utils.hpp>
+#include <curves.hpp>
+#include "utils.hpp"
 
 #include <cmath>
 #include <limits>
@@ -37,6 +37,7 @@ Vec3 Curve::binormal(double t, bool normalize) const {
 Vec3 Curve::jacobian(double t) const {
     return diff(t, 1);
 }
+//..................................................................................................
 
 Line::Line(const Vec3& origin, const Vec3& direction)
     : origin_(origin), direction_(direction) {
@@ -58,6 +59,7 @@ Vec3 Line::diff(double t, int order) const {
     }
     return Vec3(arma::fill::zeros);
 }
+//..................................................................................................
 
 Circle::Circle(const Vec3& center, const Vec3& normal, double radius)
     : center_(center), x_axis_(utils::orthogonal_vector(normal)),
@@ -77,6 +79,7 @@ Vec3 Circle::diff(double t, int order) const {
     }
     return utils::periodic_derivative(t, order, x_axis_, y_axis_, radius_, radius_);
 }
+//..................................................................................................
 
 Ellipse::Ellipse(const Vec3& center, const Vec3& normal, double x_radius, double y_radius)
     : center_(center), x_axis_(utils::orthogonal_vector(normal)),
@@ -97,6 +100,7 @@ Vec3 Ellipse::diff(double t, int order) const {
     }
     return utils::periodic_derivative(t, order, x_axis_, y_axis_, x_radius_, y_radius_);
 }
+//..................................................................................................
 
 Hyperbola::Hyperbola(const Vec3& center, const Vec3& normal, double x_radius, double y_radius)
     : center_(center), x_axis_(utils::orthogonal_vector(normal)),
@@ -120,6 +124,7 @@ Vec3 Hyperbola::diff(double t, int order) const {
     }
     return x_radius_ * std::sinh(t) * x_axis_ + y_radius_ * std::cosh(t) * y_axis_;
 }
+//..................................................................................................
 
 Parabola::Parabola(const Vec3& origin, const Vec3& normal, const Vec3& direction, double slope)
     : origin_(origin), x_axis_(direction), y_axis_(arma::cross(direction, normal)), slope_(slope) {
@@ -149,5 +154,6 @@ Vec3 Parabola::diff(double t, int order) const {
         return Vec3(arma::fill::zeros);
     }
 }
+//..................................................................................................
 
 } // namespace prometheus::geometry

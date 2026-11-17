@@ -1,7 +1,10 @@
 #pragma once
 
-#include "geometry/curves.hpp"
-#include "geometry/surfaces.hpp"
+
+#include <prometheus/common.hpp>
+#include <curves.hpp>
+#include <surfaces.hpp>
+#include <schema.hpp>
 
 namespace prometheus {
 

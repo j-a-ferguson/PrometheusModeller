@@ -1,4 +1,4 @@
-#include <prometheus/modeller.hpp>
+#include <curves.hpp>
 
 #include <gtest/gtest.h>
 
@@ -8,6 +8,7 @@
 namespace {
 
 using namespace prometheus;
+using namespace prometheus::geometry;
 
 constexpr double tolerance = 1e-12;
 const Vec3 origin{1.0, -2.0, 3.0};

@@ -1,7 +1,7 @@
 #ifndef SURFACES_HPP_
 #define SURFACES_HPP_
 
-#include <common.hpp>
+#include <prometheus/common.hpp>
 
 #include <utility>
 
