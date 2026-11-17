@@ -1,0 +1,45 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "CTest: debug selected test (CodeLLDB)",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${cmake.testProgram}",
+            "args": ["${cmake.testArgs}"],
+            "cwd": "${cmake.testWorkingDirectory}",
+            "preLaunchTask": "Build unit tests",
+            "stopOnEntry": false
+        },
+        {
+            "name": "Debug topology tests (CodeLLDB)",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/src/topology/topology_tests",
+            "args": [],
+            "cwd": "${workspaceFolder}/build/src/topology",
+            "preLaunchTask": "Build unit tests",
+            "stopOnEntry": false
+        },
+        {
+            "name": "Debug geometry tests (CodeLLDB)",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/src/geometry/geometry_tests",
+            "args": [],
+            "cwd": "${workspaceFolder}/build/src/geometry",
+            "preLaunchTask": "Build unit tests",
+            "stopOnEntry": false
+        },
+        {
+            "name": "Debug modeller tests (CodeLLDB)",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/prometheus_modeller_tests",
+            "args": [],
+            "cwd": "${workspaceFolder}/build",
+            "preLaunchTask": "Build unit tests",
+            "stopOnEntry": false
+        }
+    ]
+}

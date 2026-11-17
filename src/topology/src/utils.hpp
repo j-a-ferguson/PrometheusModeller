@@ -3,11 +3,15 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
+#include <memory>
+#include <optional>
 #include <type_traits>
-#include <types.hpp>
-
 #include <set>
 #include <vector>
+
+#include <types.hpp>
+#include <prometheus/common.hpp>
 
 namespace prometheus::topology {
 
@@ -130,7 +134,39 @@ template <typename T> class SlotPool {
     std::vector<Slot> slots_;
     Index head_ = NULL_ID;
 
+
+    Slot* find(Handle h) {
+        if(h.index >= slots_.size()) return nullptr;
+        Slot& slot = slots_[h.index];
+        return h.gen == slot.gen ? &slot : nullptr;
+    }
+
+    const Slot* find(Handle h) const {
+        if(h.index >= slots_.size()) return nullptr;
+        const Slot& slot = slots_[h.index];
+        return h.gen == slot.gen ? &slot : nullptr;
+    }
+
+    Index acquire_index() {
+        if(is_null(head_)) {
+            // free list empty, add new element
+            slots_.emplace_back();
+            return slots_.size()-1;
+        }
+        Index idx = head_;
+        head_ = slots_[idx].next;
+        return idx;
+    }
+
+    void release_index(Index i) {
+        slots_[i].next = head_;
+        head_ = i;
+    }
+
     public: 
+
+    using iterator = Iter<false>;
+    using const_iterator = Iter<true>;
 
     SlotPool(){}
 
@@ -138,6 +174,61 @@ template <typename T> class SlotPool {
         SlotPool<T> out;
         out.slots_.reserve(capacity);
         return out;
+    }
+
+    iterator begin() {
+        return iterator{.start_=slots_.data(), .cur_=slots_.data(), .end_=slots_.data() + slots_.size()};
+    }
+    iterator end() {
+        return iterator{.start_=slots_.data(), .cur_=slots_.data() + slots_.size(), .end_=slots_.data() + slots_.size()};
+    }
+    const_iterator cbegin() const {
+        return const_iterator{.start_=slots_.data(), .cur_=slots_.data(), .end_=slots_.data() + slots_.size()};
+    }
+    const_iterator cend() const {
+        return const_iterator{.start_=slots_.data(), .cur_=slots_.data() + slots_.size(), .end_=slots_.data() + slots_.size()};
+    }
+
+    template <typename... Args>
+    Handle emplace(Args&&... args) {
+        const auto idx = acquire_index();
+        Slot& s = slots_[idx];
+        try {
+            std::construct_at(&s.value, std::forward<Args>(args)...);
+        }
+        catch(...) {
+            release_index(idx);
+            throw;
+        }
+        ++s.gen;
+        return Handle{.gen=s.gen, .index = idx};
+    }
+
+    bool erase(Handle handle) {
+        Slot* s= find(handle);
+        if(s== nullptr) return false;
+
+        std::destroy_at(&(s->value));
+        ++s->gen;
+        release_index(handle.index);
+        return true;
+    }
+
+    OptRef<T> get(Handle handle) {
+        Slot* slot = find(handle);
+        if (slot == nullptr) return std::nullopt;
+        return std::ref(slot->value);
+    }
+
+    ConstOptRef<T> get(Handle handle) const {
+        const Slot* slot = find(handle);
+        if (slot == nullptr) return std::nullopt;
+        return std::cref(slot->value);
+    }
+
+    bool is_stale(Handle handle) const {
+        const Slot* slot = find(handle);
+        return slot == nullptr;
     }
 
 

@@ -1,0 +1,17 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build unit tests",
+            "type": "process",
+            "command": "cmake",
+            "args": [
+                "--build", "${workspaceFolder}/build",
+                "--target", "prometheus_modeller_tests", "geometry_tests", "topology_tests",
+                "--parallel"
+            ],
+            "problemMatcher": ["$gcc"],
+            "group": "build"
+        }
+    ]
+}

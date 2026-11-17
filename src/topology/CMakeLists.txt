@@ -5,9 +5,11 @@ add_library(prometheus_topology STATIC
 target_include_directories(prometheus_topology
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../include
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
+target_link_libraries(prometheus_topology PUBLIC armadillo)
 
 if(BUILD_TESTING)
     add_executable(topology_tests
