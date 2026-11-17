@@ -15,9 +15,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(Armadillo CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 
+# Sibling project; its tests/examples are off automatically when not top-level
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../PrometheusOptimize
+                 ${CMAKE_CURRENT_BINARY_DIR}/PrometheusOptimize)
+
 add_library(prometheus_modeller STATIC
     src/modeller.cpp
     src/geometry/curves.cpp
+    src/geometry/surfaces.cpp
+    src/geometry/utils.cpp
 )
 target_include_directories(prometheus_modeller
     PUBLIC include src
