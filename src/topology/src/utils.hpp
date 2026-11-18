@@ -95,7 +95,7 @@ template <typename T> class SlotPool {
         using pointer = std::conditional_t<Const, const T*, T*>;
 
         Iter() = default;
-        Iter(SlotPtr start, SlotPtr cur, SlotPtr end): start_{start}, cur_{cur}, end_{end_} {
+        Iter(SlotPtr start, SlotPtr cur, SlotPtr end): start_{start}, cur_{cur}, end_{end} {
             skip_free();
         }
 
@@ -106,7 +106,7 @@ template <typename T> class SlotPool {
         }
 
         pointer operator->() const {
-            return &cur_->value();
+            return &cur_->value;
         }
 
         Iter& operator++() {
@@ -138,13 +138,13 @@ template <typename T> class SlotPool {
     Slot* find(Handle h) {
         if(h.index >= slots_.size()) return nullptr;
         Slot& slot = slots_[h.index];
-        return h.gen == slot.gen ? &slot : nullptr;
+        return h.gen == slot.gen && slot.is_live() ? &slot : nullptr;
     }
 
     const Slot* find(Handle h) const {
         if(h.index >= slots_.size()) return nullptr;
         const Slot& slot = slots_[h.index];
-        return h.gen == slot.gen ? &slot : nullptr;
+        return h.gen == slot.gen && slot.is_live() ? &slot : nullptr;
     }
 
     Index acquire_index() {
@@ -177,16 +177,16 @@ template <typename T> class SlotPool {
     }
 
     iterator begin() {
-        return iterator{.start_=slots_.data(), .cur_=slots_.data(), .end_=slots_.data() + slots_.size()};
+        return iterator(slots_.data(), slots_.data(), slots_.data() + slots_.size());
     }
     iterator end() {
-        return iterator{.start_=slots_.data(), .cur_=slots_.data() + slots_.size(), .end_=slots_.data() + slots_.size()};
+        return iterator{slots_.data(), slots_.data() + slots_.size(), slots_.data() + slots_.size()};
     }
     const_iterator cbegin() const {
-        return const_iterator{.start_=slots_.data(), .cur_=slots_.data(), .end_=slots_.data() + slots_.size()};
+        return const_iterator(slots_.data(), slots_.data(), slots_.data() + slots_.size());
     }
     const_iterator cend() const {
-        return const_iterator{.start_=slots_.data(), .cur_=slots_.data() + slots_.size(), .end_=slots_.data() + slots_.size()};
+        return const_iterator{slots_.data(), slots_.data() + slots_.size(), slots_.data() + slots_.size()};
     }
 
     template <typename... Args>
