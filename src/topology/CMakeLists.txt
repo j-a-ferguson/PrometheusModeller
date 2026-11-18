@@ -1,22 +1,17 @@
 add_library(prometheus_topology STATIC
     src/schema.cpp
-    src/utils.cpp
+    src/index_resource.cpp
+    src/slot_pool.cpp
 )
-target_include_directories(prometheus_topology
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
-target_link_libraries(prometheus_topology PUBLIC armadillo prometheus_geometry)
+target_include_directories(prometheus_topology PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(prometheus_topology PUBLIC prometheus_common prometheus_geometry)
 
 if(BUILD_TESTING)
     add_executable(topology_tests
         src/test_schema.cpp
-        src/test_utils.cpp
+        src/test_index_resource.cpp
+        src/test_slot_pool.cpp
     )
-    target_include_directories(topology_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(topology_tests PRIVATE
         prometheus_topology
         GTest::gtest_main

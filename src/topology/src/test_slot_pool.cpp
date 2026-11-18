@@ -1,6 +1,4 @@
-
-
-#include <prometheus/topology/utils.hpp>
+#include "slot_pool.hpp"
 
 #include <gtest/gtest.h>
 
@@ -8,29 +6,7 @@
 
 namespace prometheus::topology {
 
-TEST(Utils, IndexResource) {
-
-    IndexResource resource;
-
-    for (int i = 0; i < 200; ++i) {
-        auto idx = resource.acquire_id();
-        ASSERT_EQ(idx, i);
-    }
-
-    for (NodeId i = 20; i < 50; ++i) {
-        resource.release_id(i);
-    }
-
-    for (int i = 0; i < 30; ++i) {
-        ASSERT_EQ(resource.acquire_id(), 20 + i);
-    }
-
-    for (int i = 0; i < 10; ++i) {
-        ASSERT_EQ(resource.acquire_id(), 200 + i);
-    }
-}
-
-TEST(Utils, BasicUse) {
+TEST(SlotPool, BasicUse) {
 
     auto pool = SlotPool<int>::with_capacity(100);
 
@@ -58,7 +34,7 @@ TEST(Utils, BasicUse) {
     }
 }
 
-TEST(Utils, SlotPoolGetReturnsMutableAndConstReferences) {
+TEST(SlotPool, GetReturnsMutableAndConstReferences) {
     SlotPool<int> pool;
     const auto handle = pool.emplace(42);
 
@@ -75,7 +51,7 @@ TEST(Utils, SlotPoolGetReturnsMutableAndConstReferences) {
     EXPECT_EQ(&const_value->get(), &value->get());
 }
 
-TEST(Utils, ErasedHandleStaysStaleAfterSlotReuse) {
+TEST(SlotPool, ErasedHandleStaysStaleAfterSlotReuse) {
     SlotPool<int> pool;
     const auto original = pool.emplace(42);
 
@@ -97,7 +73,7 @@ TEST(Utils, ErasedHandleStaysStaleAfterSlotReuse) {
     EXPECT_EQ(value->get(), 99);
 }
 
-TEST(Utils, RejectsHandleWithOutOfRangeIndex) {
+TEST(SlotPool, RejectsHandleWithOutOfRangeIndex) {
     SlotPool<int> pool;
     const auto live = pool.emplace(42);
     const Handle invalid(pool, live.index() + 1, live.gen());
@@ -109,7 +85,7 @@ TEST(Utils, RejectsHandleWithOutOfRangeIndex) {
     EXPECT_FALSE(pool.erase(invalid));
 }
 
-TEST(Utils, RejectsHandleMatchingFreeSlotGeneration) {
+TEST(SlotPool, RejectsHandleMatchingFreeSlotGeneration) {
     SlotPool<int> pool;
     const auto live = pool.emplace(42);
     ASSERT_TRUE(pool.erase(live));
@@ -128,7 +104,7 @@ TEST(Utils, RejectsHandleMatchingFreeSlotGeneration) {
     EXPECT_FALSE(pool.is_stale(replacement));
 }
 
-TEST(Utils, EmptyAndFullyErasedPoolsHaveNoElements) {
+TEST(SlotPool, EmptyAndFullyErasedPoolsHaveNoElements) {
     SlotPool<int> pool;
     const auto &const_pool = pool;
 
@@ -144,19 +120,16 @@ TEST(Utils, EmptyAndFullyErasedPoolsHaveNoElements) {
     EXPECT_EQ(const_pool.cbegin(), const_pool.cend());
 }
 
-TEST(Utils, IteratorsSkipFreeSlotsAndReportCurrentHandles) {
-    struct Entry {
-        int value;
-    };
-    SlotPool<Entry> pool;
-    const auto leading = pool.emplace(Entry{0});
-    const auto first = pool.emplace(Entry{10});
-    const auto middle = pool.emplace(Entry{20});
-    const auto old = pool.emplace(Entry{30});
-    const auto trailing = pool.emplace(Entry{40});
+TEST(SlotPool, IteratorsSkipFreeSlotsAndReportCurrentHandles) {
+    SlotPool<Vec3> pool;
+    const auto leading = pool.emplace(Vec3{0, 0, 0});
+    const auto first = pool.emplace(Vec3{10, 0, 0});
+    const auto middle = pool.emplace(Vec3{20, 0, 0});
+    const auto old = pool.emplace(Vec3{30, 0, 0});
+    const auto trailing = pool.emplace(Vec3{40, 0, 0});
 
     ASSERT_TRUE(pool.erase(old));
-    const auto replacement = pool.emplace(Entry{99});
+    const auto replacement = pool.emplace(Vec3{99, 0, 0});
     ASSERT_EQ(replacement.index(), old.index());
     ASSERT_NE(replacement.gen(), old.gen());
 
@@ -168,24 +141,24 @@ TEST(Utils, IteratorsSkipFreeSlotsAndReportCurrentHandles) {
     ASSERT_NE(it, pool.end());
     EXPECT_EQ(it.handle().index(), first.index());
     EXPECT_EQ(it.handle().gen(), first.gen());
-    it->value = 11;
+    it->at(0) = 11;
 
     auto previous = it++;
-    EXPECT_EQ((*previous).value, 11);
+    EXPECT_EQ((*previous)[0], 11);
     ASSERT_NE(it, pool.end());
     EXPECT_EQ(it.handle().index(), replacement.index());
     EXPECT_EQ(it.handle().gen(), replacement.gen());
-    EXPECT_EQ(it->value, 99);
+    EXPECT_EQ(it->at(0), 99);
     EXPECT_EQ(++it, pool.end());
 
     const auto &const_pool = pool;
     auto cit = const_pool.cbegin();
-    static_assert(std::is_same_v<decltype(*cit), const Entry &>);
+    static_assert(std::is_same_v<decltype(*cit), const Vec3 &>);
     ASSERT_NE(cit, const_pool.cend());
-    EXPECT_EQ(cit->value, 11);
+    EXPECT_EQ(cit->at(0), 11);
     ++cit;
     ASSERT_NE(cit, const_pool.cend());
-    EXPECT_EQ(cit->value, 99);
+    EXPECT_EQ(cit->at(0), 99);
     EXPECT_EQ(++cit, const_pool.cend());
 }
 

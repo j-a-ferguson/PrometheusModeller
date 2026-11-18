@@ -1,7 +1,7 @@
 #ifndef GEOMETRY_UTILS_HPP_
 #define GEOMETRY_UTILS_HPP_
 
-#include <prometheus/common.hpp>
+#include "common.hpp"
 
 #include <numbers>
 

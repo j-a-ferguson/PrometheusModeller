@@ -1,4 +1,5 @@
-#pragma once
+#ifndef NODE_ID_HPP_ 
+#define NODE_ID_HPP_ 
 
 #include <cstddef>
 #include <limits>
@@ -9,8 +10,8 @@ using NodeId = std::size_t;
 
 inline constexpr NodeId NULL_ID = std::numeric_limits<NodeId>::max();
 
-constexpr bool is_null(NodeId id) {
-    return id == NULL_ID;
-}
+constexpr bool is_null(NodeId id) { return id == NULL_ID; }
 
 } // namespace prometheus::topology
+
+#endif 

@@ -31,6 +31,7 @@ if(BUILD_TESTING)
     add_executable(prometheus_modeller_tests tests/modeller_test.cpp)
     target_link_libraries(prometheus_modeller_tests PRIVATE
         prometheus_modeller
+        nlohmann_json::nlohmann_json
         GTest::gtest_main
     )
     gtest_discover_tests(prometheus_modeller_tests)

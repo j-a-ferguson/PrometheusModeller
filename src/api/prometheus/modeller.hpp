@@ -1,14 +1,12 @@
 #pragma once
 
-
-#include <prometheus/common.hpp>
-#include <curves.hpp>
-#include <surfaces.hpp>
-#include <schema.hpp>
+#include "../../common/include/common.hpp"
+#include "../../geometry/include/curves.hpp"
+#include "../../geometry/include/surfaces.hpp"
+#include "../../topology/include/node_id.hpp"
 
 namespace prometheus {
 
-// Add public declarations here.
 using geometry::Curve;
 using geometry::Line;
 using geometry::Circle;
@@ -22,4 +20,4 @@ using geometry::Cylinder;
 using geometry::Torus;
 using geometry::Sphere;
 
-} // namespace prometheus::modeller
+} // namespace prometheus
