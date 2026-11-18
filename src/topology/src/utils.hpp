@@ -1,17 +1,19 @@
 #ifndef UTILS_HPP_
 #define UTILS_HPP_
 
+#include <armadillo>
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
 #include <memory>
 #include <optional>
-#include <type_traits>
 #include <set>
+#include <stdexcept>
+#include <type_traits>
 #include <vector>
 
-#include <types.hpp>
 #include <prometheus/common.hpp>
+#include <types.hpp>
 
 namespace prometheus::topology {
 
@@ -28,20 +30,20 @@ class IndexResource {
     std::set<NodeId> free_ids_;
 };
 
-
 using Index = std::size_t;
 using Generation = std::uint32_t;
 
-struct Handle 
-{
+template <typename T> class SlotPool;
+
+template <typename T> struct Handle {
+    SlotPool<T> *pool;
     Index index;
     Generation gen;
 };
 
 template <typename T> class SlotPool {
 
-    private: 
-
+  private:
     struct Slot {
         // next is active when slot is free, value is active when live
         union {
@@ -70,46 +72,46 @@ template <typename T> class SlotPool {
         Slot &operator=(Slot &&) = delete;
     };
 
-    template <bool Const>
-    class Iter {
-        private: 
+    template <bool Const> class Iter {
+      private:
+        using SlotPtr = std::conditional_t<Const, const Slot *, Slot *>;
+        using SlotPoolPtr = std::conditional_t<Const, const SlotPool<T> *, SlotPool<T> *>;
 
-        using SlotPtr = std::conditional_t<Const, const Slot*, Slot*>;
-
+        SlotPool<T> pool_{nullptr};
         SlotPtr start_{nullptr};
         SlotPtr cur_{nullptr};
         SlotPtr end_{nullptr};
 
         void skip_free() {
-            while (cur_!= end_ && !cur_->is_live()) ++cur_;
+            while (cur_ != end_ && !cur_->is_live())
+                ++cur_;
         }
 
-
-        public: 
-
+      public:
         using iterator_concept = std::forward_iterator_tag;
         using iterator_category = std::forward_iterator_tag;
         using value_type = T;
         using difference_type = std::ptrdiff_t;
-        using reference = std::conditional_t<Const, const T&, T&>;
-        using pointer = std::conditional_t<Const, const T*, T*>;
+        using reference = std::conditional_t<Const, const T &, T &>;
+        using pointer = std::conditional_t<Const, const T *, T *>;
 
         Iter() = default;
-        Iter(SlotPtr start, SlotPtr cur, SlotPtr end): start_{start}, cur_{cur}, end_{end} {
+        Iter(SlotPoolPtr pool, SlotPtr start, SlotPtr cur, SlotPtr end)
+            : pool_{pool}, start_{start}, cur_{cur}, end_{end} {
             skip_free();
         }
 
-        operator Iter<true>() const requires (!Const) { return {start_, cur_, end_}; }
-
-        reference operator*() const {
-            return cur_->value;
+        operator Iter<true>() const
+            requires(!Const)
+        {
+            return {start_, cur_, end_};
         }
 
-        pointer operator->() const {
-            return &cur_->value;
-        }
+        reference operator*() const { return cur_->value; }
 
-        Iter& operator++() {
+        pointer operator->() const { return &cur_->value; }
+
+        Iter &operator++() {
             ++cur_;
             skip_free();
             return *this;
@@ -122,36 +124,37 @@ template <typename T> class SlotPool {
             return out;
         }
 
-        friend bool operator==(const Iter& a, const Iter& b) {return a.cur_ == b.cur_;}
+        friend bool operator==(const Iter &a, const Iter &b) { return a.cur_ == b.cur_; }
 
-        Handle handle() const {
-            return Handle{.index = static_cast<Index>(cur_ - start_), .gen = cur_->gen};
+        Handle<T> handle() const {
+            return Handle{.pool = pool_, .index = static_cast<Index>(cur_ - start_), .gen = cur_->gen};
         }
-
-
     };
 
     std::vector<Slot> slots_;
     Index head_ = NULL_ID;
 
-
-    Slot* find(Handle h) {
-        if(h.index >= slots_.size()) return nullptr;
-        Slot& slot = slots_[h.index];
+    Slot *find(Handle<T> h) {
+        require_same_pool(h);
+        if (h.index >= slots_.size())
+            return nullptr;
+        Slot &slot = slots_[h.index];
         return h.gen == slot.gen && slot.is_live() ? &slot : nullptr;
     }
 
-    const Slot* find(Handle h) const {
-        if(h.index >= slots_.size()) return nullptr;
-        const Slot& slot = slots_[h.index];
+    const Slot *find(Handle<T> h) const {
+        require_same_pool(h);
+        if (h.index >= slots_.size())
+            return nullptr;
+        const Slot &slot = slots_[h.index];
         return h.gen == slot.gen && slot.is_live() ? &slot : nullptr;
     }
 
     Index acquire_index() {
-        if(is_null(head_)) {
+        if (is_null(head_)) {
             // free list empty, add new element
             slots_.emplace_back();
-            return slots_.size()-1;
+            return slots_.size() - 1;
         }
         Index idx = head_;
         head_ = slots_[idx].next;
@@ -163,12 +166,11 @@ template <typename T> class SlotPool {
         head_ = i;
     }
 
-    public: 
-
+  public:
     using iterator = Iter<false>;
     using const_iterator = Iter<true>;
 
-    SlotPool(){}
+    SlotPool() {}
 
     static SlotPool<T> with_capacity(size_t capacity) {
         SlotPool<T> out;
@@ -180,33 +182,34 @@ template <typename T> class SlotPool {
         return iterator(slots_.data(), slots_.data(), slots_.data() + slots_.size());
     }
     iterator end() {
-        return iterator{slots_.data(), slots_.data() + slots_.size(), slots_.data() + slots_.size()};
+        return iterator{slots_.data(), slots_.data() + slots_.size(),
+                        slots_.data() + slots_.size()};
     }
     const_iterator cbegin() const {
         return const_iterator(slots_.data(), slots_.data(), slots_.data() + slots_.size());
     }
     const_iterator cend() const {
-        return const_iterator{slots_.data(), slots_.data() + slots_.size(), slots_.data() + slots_.size()};
+        return const_iterator{slots_.data(), slots_.data() + slots_.size(),
+                              slots_.data() + slots_.size()};
     }
 
-    template <typename... Args>
-    Handle emplace(Args&&... args) {
+    template <typename... Args> Handle<T> emplace(Args &&...args) {
         const auto idx = acquire_index();
-        Slot& s = slots_[idx];
+        Slot &s = slots_[idx];
         try {
             std::construct_at(&s.value, std::forward<Args>(args)...);
-        }
-        catch(...) {
+        } catch (...) {
             release_index(idx);
             throw;
         }
         ++s.gen;
-        return Handle{.gen=s.gen, .index = idx};
+        return Handle{.pool = this, .gen = s.gen, .index = idx};
     }
 
-    bool erase(Handle handle) {
-        Slot* s= find(handle);
-        if(s== nullptr) return false;
+    bool erase(Handle<T> handle) {
+        Slot *s = find(handle);
+        if (s == nullptr)
+            return false;
 
         std::destroy_at(&(s->value));
         ++s->gen;
@@ -214,26 +217,30 @@ template <typename T> class SlotPool {
         return true;
     }
 
-    OptRef<T> get(Handle handle) {
-        Slot* slot = find(handle);
-        if (slot == nullptr) return std::nullopt;
+    OptRef<T> get(Handle<T> handle) {
+        Slot *slot = find(handle);
+        if (slot == nullptr)
+            return std::nullopt;
         return std::ref(slot->value);
     }
 
-    ConstOptRef<T> get(Handle handle) const {
-        const Slot* slot = find(handle);
-        if (slot == nullptr) return std::nullopt;
+    ConstOptRef<T> get(Handle<T> handle) const {
+        const Slot *slot = find(handle);
+        if (slot == nullptr)
+            return std::nullopt;
         return std::cref(slot->value);
     }
 
-    bool is_stale(Handle handle) const {
-        const Slot* slot = find(handle);
+    bool is_stale(Handle<T> handle) const {
+        const Slot *slot = find(handle);
         return slot == nullptr;
     }
 
-
-
-
+    void require_same_pool(Handle<T> handle) {
+        if (handle.pool != this) {
+            throw std::logic_error("Handle from wrong slot pool");
+        }
+    }
 };
 } // namespace prometheus::topology
 
