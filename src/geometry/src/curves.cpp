@@ -7,34 +7,34 @@
 
 namespace prometheus::geometry {
 
-std::pair<double, double> Curve::param_range() const {
+std::pair<double, double> CurveBase::param_range() const {
     const double infinity = std::numeric_limits<double>::infinity();
     return {-infinity, infinity};
 }
 
-bool Curve::in_range(double t) const {
+bool CurveBase::in_range(double t) const {
     const auto [start, end] = param_range();
     return t >= start && t <= end;
 }
 
-Vec3 Curve::tangent(double t, bool normalize) const {
+Vec3 CurveBase::tangent(double t, bool normalize) const {
     const Vec3 velocity = diff(t, 1);
     return normalize ? utils::unit_vector(velocity) : velocity;
 }
 
-Vec3 Curve::normal(double t, bool normalize) const {
+Vec3 CurveBase::normal(double t, bool normalize) const {
     const Vec3 velocity = diff(t, 1);
     const Vec3 acceleration = diff(t, 2);
     const Vec3 normal = arma::cross(arma::cross(velocity, acceleration), velocity);
     return normalize ? utils::unit_vector(normal) : normal;
 }
 
-Vec3 Curve::binormal(double t, bool normalize) const {
+Vec3 CurveBase::binormal(double t, bool normalize) const {
     const Vec3 binormal = arma::cross(diff(t, 1), diff(t, 2));
     return normalize ? utils::unit_vector(binormal) : binormal;
 }
 
-Vec3 Curve::jacobian(double t) const {
+Vec3 CurveBase::jacobian(double t) const {
     return diff(t, 1);
 }
 //..................................................................................................

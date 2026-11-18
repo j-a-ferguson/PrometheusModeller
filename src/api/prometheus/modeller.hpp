@@ -7,13 +7,13 @@
 
 namespace prometheus {
 
-using geometry::Curve;
+using geometry::CurveBase;
 using geometry::Line;
 using geometry::Circle;
 using geometry::Ellipse;
 using geometry::Hyperbola;
 using geometry::Parabola;
-using geometry::Surface;
+using geometry::SurfaceBase;
 using geometry::Plane;
 using geometry::Cone;
 using geometry::Cylinder;

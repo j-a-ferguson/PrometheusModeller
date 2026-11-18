@@ -8,37 +8,37 @@
 
 namespace prometheus::geometry {
 
-std::pair<double, double> Surface::param_range_u() const {
+std::pair<double, double> SurfaceBase::param_range_u() const {
     const double infinity = std::numeric_limits<double>::infinity();
     return {-infinity, infinity};
 }
 
-bool Surface::in_range_u(double u) const {
+bool SurfaceBase::in_range_u(double u) const {
     const auto [start, end] = param_range_u();
     return u >= start && u <= end;
 }
 
-std::pair<double, double> Surface::param_range_v() const {
+std::pair<double, double> SurfaceBase::param_range_v() const {
     const double infinity = std::numeric_limits<double>::infinity();
     return {-infinity, infinity};
 }
 
-bool Surface::in_range_v(double v) const {
+bool SurfaceBase::in_range_v(double v) const {
     const auto [start, end] = param_range_v();
     return v >= start && v <= end;
 }
 
-Vec3 Surface::tangent_u(double u, double v, bool normalize) const {
+Vec3 SurfaceBase::tangent_u(double u, double v, bool normalize) const {
     const Vec3 tangent = diff(u, v, 1, 0);
     return normalize ? utils::unit_vector(tangent) : tangent;
 }
 
-Vec3 Surface::tangent_v(double u, double v, bool normalize) const {
+Vec3 SurfaceBase::tangent_v(double u, double v, bool normalize) const {
     const Vec3 tangent = diff(u, v, 0, 1);
     return normalize ? utils::unit_vector(tangent) : tangent;
 }
 
-Vec3 Surface::normal(double u, double v, bool normalize) const {
+Vec3 SurfaceBase::normal(double u, double v, bool normalize) const {
     const Vec3 normal = arma::cross(diff(u, v, 1, 0), diff(u, v, 0, 1));
     return normalize ? utils::unit_vector(normal) : normal;
 }

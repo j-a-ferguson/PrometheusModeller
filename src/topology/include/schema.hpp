@@ -3,177 +3,272 @@
 
 #include <memory>
 
-#include "curves.hpp"
+#include "chains.hpp"
 #include "common.hpp"
-#include "surfaces.hpp"
-#include "slot_pool.hpp"
+#include "curves.hpp"
+#include "index_resource.hpp"
 #include "node_id.hpp"
+#include "slot_pool.hpp"
+#include "surfaces.hpp"
 
 namespace prometheus::topology {
 
-class Vertex;
-class Edge;
-class Fin;
-class Loop;
-class Face;
-class Shell;
-class Region;
-class Body;
+struct Vertex;
+struct Edge;
+struct Fin;
+struct Loop;
+struct Face;
+struct Shell;
+struct Region;
+struct Body;
 class Modeller;
+
 using Point = Vec3;
-using Curve = std::unique_ptr<geometry::Curve>;
-using Surface = std::unique_ptr<geometry::Surface>;
+//.................................................................................................
 
-class Vertex {
+struct PointNode {
+    PointNode(Point value) : point{std::move(value)} {}
 
-  public:
-  private:
-    Body *body_;
+    Point &geo();
+    const Point &geo() const;
+
+    Body *body;
+    NodeId id;
+    Point point;
+};
+//.................................................................................................
+
+struct CurveNode : public geometry::CurveBase {
+    CurveNode(NodeId node_id, std::unique_ptr<geometry::CurveBase> geometry_value);
+
+    Vec3 eval(double t) const override;
+    Vec3 diff(double t, int order = 1) const override;
+    std::pair<double, double> param_range() const override;
+    Vec3 tangent(double t, bool normalize = true) const override;
+    Vec3 normal(double t, bool normalize = true) const override;
+    Vec3 binormal(double t, bool normalize = true) const override;
+    Vec3 jacobian(double t) const override;
+
+    CurveBase &geo();
+    const CurveBase &geo() const;
+
+    Body *body;
+    NodeId id;
+    std::unique_ptr<geometry::CurveBase> curve;
+};
+//.................................................................................................
+
+struct SurfaceNode : public geometry::SurfaceBase {
+    SurfaceNode(NodeId node_id, std::unique_ptr<geometry::SurfaceBase> geometry_value);
+
+    Vec3 eval(double u, double v) const override;
+    Vec3 diff(double u, double v, int order_u, int order_v) const override;
+    std::pair<double, double> param_range_u() const override;
+    std::pair<double, double> param_range_v() const override;
+    Vec3 tangent_u(double u, double v, bool normalize = true) const override;
+    Vec3 tangent_v(double u, double v, bool normalize = true) const override;
+    Vec3 normal(double u, double v, bool normalize = true) const override;
+
+    SurfaceBase &geo();
+    const SurfaceBase &geo() const;
+
+    Body *body;
+    NodeId id;
+    std::unique_ptr<geometry::SurfaceBase> surface;
+};
+//.................................................................................................
+
+struct Vertex {
+    const Point &point();
+
+    Body *body;
     // UID of node
-    NodeId id_;
-    // owning body
-    Handle<Body> body;
+    NodeId id;
     // Point of vertex
-    Handle<Point> point_;
+    Handle<PointNode> point_node;
     // Head of singly-linked chain of fins referencing this vertex
-    Handle<Fin> fin_;
+    Handle<Fin> fin;
 };
+//.................................................................................................
 
-class Edge {
-  public:
-  private:
-    Body *body_;
+struct Edge {
+    Body *body;
     // UID of node
-    NodeId id_;
+    NodeId id;
     // Head of singly-linked chain of fins around edge
-    Handle<Fin> fin_;
+    Handle<Fin> fin;
     // Underlying curve
-    Handle<Curve> curve_;
+    Handle<CurveNode> curve;
     // Orientation relative to curve
-    bool sense_;
+    bool sense;
 };
 
-class Fin {
+//.................................................................................................
 
-  public:
-  private:
-    Body *body_;
+struct Fin {
+    Body *body;
     // UID of node
-    NodeId id_;
+    NodeId id;
     // Loop of fin
-    Handle<Loop> loop_;
+    Handle<Loop> loop;
     // Prev fin around loop
-    Handle<Fin> fin_prev_;
+    Handle<Fin> fin_prev;
     // Next fin around loop
-    Handle<Fin> fin_next_;
+    Handle<Fin> fin_next;
     // Forward vertex of fin
-    Handle<Vertex> vertex_;
+    Handle<Vertex> vertex;
     // Next fin around edge (clockwise looking along edge)
-    Handle<Fin> fin_next_on_edge_;
+    Handle<Fin> fin_next_on_edge;
     // Edge of the fin
-    Handle<Edge> edge_;
-    // Next fin in list referencing `vertex_`
-    Handle<Fin> fin_next_at_vertex_;
+    Handle<Edge> edge;
+    // Next fin in list referencing `vertex`
+    Handle<Fin> fin_next_at_vertex;
     // Orientation relative to to the edge
-    bool sense_;
+    bool sense;
 };
 
-class Loop {
+// head of chain is Vertex::fin;
+using VertexFins = SinglyLinked<Fin, &Fin::fin_next_at_vertex>;
+// head of chain is Edge::fin;
+using EdgeFins = SinglyLinked<Fin, &Fin::fin_next_on_edge>;
+// start of circular chain is Loop::fin
+using LoopFins = DoublyLinked<Fin, &Fin::fin_next, &Fin::fin_prev, ChainShape::circular>;
+//.................................................................................................
 
-  public:
-  private:
-    Body *body_;
+struct Loop {
+    Body *body;
     // UID of node
-    NodeId id_;
+    NodeId id;
     // Arbitrary fin in loop
-    Handle<Fin> fin_;
+    Handle<Fin> fin;
     // Next loop in face
-    Handle<Loop> loop_next_in_face_;
+    Handle<Loop> loop_next_in_face;
     // Owning face
-    Handle<Face> face_;
+    Handle<Face> face;
 };
 
-class Face {
+// start of chain is Face::loop
+using FaceLoops = SinglyLinked<Loop, &Loop::loop_next_in_face>;
+//.................................................................................................
 
-  public:
-  private:
-    Body *body_;
+struct Face {
+    Body *body;
     // UID of node
-    NodeId id_;
+    NodeId id;
+    // head of chain of loops
+    Handle<Loop> loop;
     // Previous back-face of shell
-    Handle<Face> face_prev_in_back_shell_;
+    Handle<Face> face_prev_in_back_shell;
     // Next back-face of shell
-    Handle<Face> face_next_in_back_shell_;
+    Handle<Face> face_next_in_back_shell;
     // Previous front-face of shell
-    Handle<Face> face_prev_in_front_shell_;
+    Handle<Face> face_prev_in_front_shell;
     // Next front-face of shell
-    Handle<Face> face_next_in_front_shell_;
+    Handle<Face> face_next_in_front_shell;
     // Shell for which this is a back-face
-    Handle<Shell> shell_back_;
+    Handle<Shell> shell_back;
     // Shell for which this is a front-face
-    Handle<Shell> shell_front_;
+    Handle<Shell> shell_front;
     // Previous face on surface
-    Handle<Face> face_prev_on_surface_;
+    Handle<Face> face_prev_on_surface;
     // Next face on surface
-    Handle<Face> face_next_on_surface_;
+    Handle<Face> face_next_on_surface;
     // Surface
-    Handle<Surface> surface_;
+    Handle<SurfaceNode> surface;
     // Orientation w.r.t surface
-    bool sense_;
+    bool sense;
 };
 
-class Shell {
+// head of chain is Shell::faces_back
+using ShellBackFaces = DoublyLinked<Face, &Face::face_next_in_back_shell,
+                                    &Face::face_prev_in_back_shell, ChainShape::linear>;
+// head of chain is Shell::faces_front
+using ShellFrontFaces = DoublyLinked<Face, &Face::face_next_in_front_shell,
+                                     &Face::face_prev_in_front_shell, ChainShape::linear>;
+//.................................................................................................
 
-  public:
-  private:
-    Body *body_;
+struct Shell {
+    Body *body;
     // UID of node
-    NodeId id_;
+    NodeId id;
     // Prev Shell in Region
-    Handle<Shell> shell_prev_in_region_;
+    Handle<Shell> shell_prev_in_region;
     // Next Shell in Region
-    Handle<Shell> shell_next_in_region_;
+    Handle<Shell> shell_next_in_region;
     // Head of linked-list of back faces
-    Handle<Face> faces_back_;
+    Handle<Face> faces_back;
     // Head of linked-list of front-faces
-    Handle<Face> faces_front_;
+    Handle<Face> faces_front;
     // Region of shell
-    Handle<Region> region_;
+    Handle<Region> region;
 };
+
+// head of chain is Region::shells
+using RegionShells = DoublyLinked<Shell, &Shell::shell_next_in_region, &Shell::shell_prev_in_region,
+                                  ChainShape::linear>;
+//.................................................................................................
 
 enum class RegionType { Solid, Void };
 
-class Region {
-
-    Body *body_;
+struct Region {
+    Body *body;
     // UID of node
-    NodeId id_;
+    NodeId id;
     // Head of linked-list of shells
-    Handle<Shell> shell_;
+    Handle<Shell> shell;
     // Solid or void
-    RegionType type_;
+    RegionType type;
 };
+//.................................................................................................
 
 enum class BodyType { ManifoldSolid, ManifoldSheet, ManifoldWire, NonManifold };
+//.................................................................................................
 
-class Body {
+struct Body {
+    Handle<Vertex> addVertex();
+    Handle<Edge> addEdge();
+    Handle<Fin> addFin();
+    Handle<Loop> addLoop();
+    Handle<Face> addFace();
+    Handle<Shell> addShell();
+    Handle<Region> addRegion();
+    Handle<PointNode> addPoint(Point point);
+    Handle<CurveNode> addCurve(geometry::Curve curve);
+    Handle<SurfaceNode> addSurface(geometry::Surface surface);
 
-  public:
-  private:
-    SlotPool<Vertex> vertices_;
-    SlotPool<Edge> edges_;
-    SlotPool<Fin> fins_;
-    SlotPool<Loop> loops_;
-    SlotPool<Face> faces_;
-    SlotPool<Shell> shells_;
-    SlotPool<Region> regions_;
+    template <typename T> Handle<T> addTopology(SlotPool<T> &pool);
+
+    Modeller *modeller{};
+
+    NodeId id;
+
+    // topology
+    SlotPool<Vertex> vertices;
+    SlotPool<Edge> edges;
+    SlotPool<Fin> fins;
+    SlotPool<Loop> loops;
+    SlotPool<Face> faces;
+    SlotPool<Shell> shells;
+    SlotPool<Region> regions;
+
+    // geometry
+    SlotPool<PointNode> points;
+    SlotPool<CurveNode> curves;
+    SlotPool<SurfaceNode> surfaces;
 };
+//.................................................................................................
 
 class Modeller {
+    friend struct Body;
+
   public:
+    Handle<Body> add_body();
+
   private:
+    IndexResource node_id_resource_;
     SlotPool<Body> bodies;
 };
+//.................................................................................................
 
 } // namespace prometheus::topology
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.hpp"
+#include "surfaces.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -8,6 +9,7 @@
 #include <iterator>
 #include <limits>
 #include <memory>
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -15,25 +17,37 @@
 namespace prometheus::topology {
 
 using Index = std::size_t;
+constexpr Index NULL_INDEX = std::numeric_limits<Index>::max();
 using Generation = std::uint32_t;
+constexpr Generation NULL_GEN =  std::numeric_limits<Generation>::max();
 
 template <typename T> class SlotPool;
 
 template <typename T> class Handle {
 
   public:
+    Handle() = default;
     Handle(SlotPool<T> &pool, Index index, Generation gen);
+    bool operator==(const Handle<T>& other) const = default;
+
+    static Handle<T> null() {
+      Handle<T> null_handle;
+      return null_handle;
+    };
+
     T &get();
     const T &get() const;
     const Index &index() const;
     const Generation &gen() const;
+    void nullify();
+    bool is_null() const;
 
   private:
     friend class SlotPool<T>;
 
-    SlotPool<T> *pool_;
-    Index index_;
-    Generation gen_;
+    SlotPool<T> *pool_{nullptr};
+    Index index_{NULL_INDEX};
+    Generation gen_{NULL_GEN};
 };
 
 template <typename T> class SlotPool {

@@ -3,13 +3,14 @@
 
 #include "../../common/include/common.hpp"
 
+#include <memory>
 #include <utility>
 
 namespace prometheus::geometry {
 
-class Curve {
+class CurveBase {
 public:
-    virtual ~Curve() = default;
+    virtual ~CurveBase() = default;
 
     virtual Vec3 eval(double t) const = 0;
     // Order zero evaluates the point. Negative orders throw std::invalid_argument.
@@ -31,7 +32,9 @@ public:
     virtual Vec3 jacobian(double t) const;
 };
 
-class Line : public Curve {
+using Curve = std::unique_ptr<CurveBase>;
+
+class Line : public CurveBase {
 public:
     // Direction must be a unit vector.
     Line(const Vec3& origin, const Vec3& direction);
@@ -47,7 +50,7 @@ private:
 // For planar curves, normal must be a unit vector and radii must be positive.
 // As in the reference implementation, x_axis is chosen perpendicular to normal
 // and y_axis = x_axis x normal. Circle/ellipse parameters are angles in radians.
-class Circle : public Curve {
+class Circle : public CurveBase {
 public:
     Circle(const Vec3& center, const Vec3& normal, double radius);
 
@@ -61,7 +64,7 @@ private:
     double radius_;
 };
 
-class Ellipse : public Curve {
+class Ellipse : public CurveBase {
 public:
     Ellipse(const Vec3& center, const Vec3& normal, double x_radius, double y_radius);
 
@@ -77,7 +80,7 @@ private:
 };
 
 // The positive branch: center + rx*cosh(t)*x_axis + ry*sinh(t)*y_axis.
-class Hyperbola : public Curve {
+class Hyperbola : public CurveBase {
 public:
     Hyperbola(const Vec3& center, const Vec3& normal, double x_radius, double y_radius);
 
@@ -93,7 +96,7 @@ private:
 };
 
 // origin + 4*slope*t*direction + t*t*(direction x normal).
-class Parabola : public Curve {
+class Parabola : public CurveBase {
 public:
     // Normal and direction must be perpendicular unit vectors; slope is positive.
     Parabola(const Vec3& origin, const Vec3& normal, const Vec3& direction, double slope);
