@@ -1,6 +1,6 @@
 
 
-#include "utils.hpp"
+#include <prometheus/topology/utils.hpp>
 
 #include <gtest/gtest.h>
 
@@ -42,7 +42,7 @@ TEST(Utils, BasicUse) {
     }
 
     for (Index i = 20; i < 50; ++i) {
-        Handle h{.gen = 1, .index = i};
+        const Handle h(pool, i, 1);
         ASSERT_TRUE(pool.erase(h));
     }
 
@@ -50,8 +50,8 @@ TEST(Utils, BasicUse) {
     for (Index i = 20; i < 50; ++i) {
         auto handle = pool.emplace(100 + i);
         ASSERT_TRUE(!pool.is_stale(handle));
-        ASSERT_EQ(handle.gen, 3);
-        ASSERT_EQ(handle.index, 49 - ii);
+        ASSERT_EQ(handle.gen(), 3);
+        ASSERT_EQ(handle.index(), 49 - ii);
         ASSERT_TRUE(pool.get(handle).has_value());
         ASSERT_TRUE(pool.get(handle).value() == 100 + i);
         ++ii;
@@ -85,8 +85,8 @@ TEST(Utils, ErasedHandleStaysStaleAfterSlotReuse) {
     ASSERT_FALSE(pool.erase(original));
 
     const auto replacement = pool.emplace(99);
-    ASSERT_EQ(replacement.index, original.index);
-    EXPECT_NE(replacement.gen, original.gen);
+    ASSERT_EQ(replacement.index(), original.index());
+    EXPECT_NE(replacement.gen(), original.gen());
 
     EXPECT_TRUE(pool.is_stale(original));
     EXPECT_FALSE(pool.get(original).has_value());
@@ -100,7 +100,7 @@ TEST(Utils, ErasedHandleStaysStaleAfterSlotReuse) {
 TEST(Utils, RejectsHandleWithOutOfRangeIndex) {
     SlotPool<int> pool;
     const auto live = pool.emplace(42);
-    const Handle invalid{.index = live.index + 1, .gen = live.gen};
+    const Handle invalid(pool, live.index() + 1, live.gen());
     const auto &const_pool = pool;
 
     EXPECT_TRUE(pool.is_stale(invalid));
@@ -115,7 +115,7 @@ TEST(Utils, RejectsHandleMatchingFreeSlotGeneration) {
     ASSERT_TRUE(pool.erase(live));
 
     // Match the generation after erase so only liveness distinguishes this slot.
-    const Handle free_slot{.index = live.index, .gen = live.gen + 1};
+    const Handle free_slot(pool, live.index(), live.gen() + 1);
     const auto &const_pool = pool;
 
     EXPECT_TRUE(pool.is_stale(free_slot));
@@ -124,7 +124,7 @@ TEST(Utils, RejectsHandleMatchingFreeSlotGeneration) {
     ASSERT_FALSE(pool.erase(free_slot));
 
     const auto replacement = pool.emplace(99);
-    EXPECT_EQ(replacement.index, free_slot.index);
+    EXPECT_EQ(replacement.index(), free_slot.index());
     EXPECT_FALSE(pool.is_stale(replacement));
 }
 
@@ -157,8 +157,8 @@ TEST(Utils, IteratorsSkipFreeSlotsAndReportCurrentHandles) {
 
     ASSERT_TRUE(pool.erase(old));
     const auto replacement = pool.emplace(Entry{99});
-    ASSERT_EQ(replacement.index, old.index);
-    ASSERT_NE(replacement.gen, old.gen);
+    ASSERT_EQ(replacement.index(), old.index());
+    ASSERT_NE(replacement.gen(), old.gen());
 
     ASSERT_TRUE(pool.erase(leading));
     ASSERT_TRUE(pool.erase(middle));
@@ -166,15 +166,15 @@ TEST(Utils, IteratorsSkipFreeSlotsAndReportCurrentHandles) {
 
     auto it = pool.begin();
     ASSERT_NE(it, pool.end());
-    EXPECT_EQ(it.handle().index, first.index);
-    EXPECT_EQ(it.handle().gen, first.gen);
+    EXPECT_EQ(it.handle().index(), first.index());
+    EXPECT_EQ(it.handle().gen(), first.gen());
     it->value = 11;
 
     auto previous = it++;
     EXPECT_EQ((*previous).value, 11);
     ASSERT_NE(it, pool.end());
-    EXPECT_EQ(it.handle().index, replacement.index);
-    EXPECT_EQ(it.handle().gen, replacement.gen);
+    EXPECT_EQ(it.handle().index(), replacement.index());
+    EXPECT_EQ(it.handle().gen(), replacement.gen());
     EXPECT_EQ(it->value, 99);
     EXPECT_EQ(++it, pool.end());
 

@@ -1,6 +1,6 @@
 
 
-#include "utils.hpp"
+#include <prometheus/topology/utils.hpp>
 
 #include <stdexcept>
 

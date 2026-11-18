@@ -1,8 +1,13 @@
 #ifndef SCHEMA_HPP_
 #define SCHEMA_HPP_
 
+#include <memory>
+
+#include "prometheus/common.hpp"
 #include "types.hpp"
-#include "utils.hpp"
+#include <prometheus/topology/utils.hpp>
+#include "curves.hpp"
+#include "surfaces.hpp"
 
 namespace prometheus::topology {
 
@@ -15,6 +20,9 @@ namespace prometheus::topology {
     class Region;
     class Body;
     class Modeller;
+    using Point = Vec3;
+    using Curve = std::unique_ptr<geometry::Curve>;
+    using Surface = std::unique_ptr<geometry::Surface>;
 
 
     class Vertex {
@@ -25,13 +33,13 @@ namespace prometheus::topology {
 
         Body* body_;
         // UID of node
-        Handle id_;
+        NodeId id_;
         // owning body
-        Handle body;
+        Handle<Body> body;
         // Point of vertex
-        Handle point_;
+        Handle<Point> point_;
         // Head of singly-linked chain of fins referencing this vertex
-        Handle fin_;
+        Handle<Fin> fin_;
     };
 
     class Edge {
@@ -42,11 +50,11 @@ namespace prometheus::topology {
 
         Body* body_;
         // UID of node
-        Handle id_;
+        NodeId id_;
 	    // Head of singly-linked chain of fins around edge
-        Handle fin_;
+        Handle<Fin> fin_;
         // Underlying curve
-        Handle curve_;
+        Handle<Curve> curve_;
         // Orientation relative to curve
         bool sense_;
     };
@@ -60,21 +68,21 @@ namespace prometheus::topology {
 
         Body* body_;
         // UID of node
-        Handle id_;
+        NodeId id_;
         // Loop of fin
-        Handle loop_;
+        Handle<Loop> loop_;
         // Prev fin around loop
-        Handle fin_prev_;
+        Handle<Fin> fin_prev_;
         // Next fin around loop
-        Handle fin_next_;
+        Handle<Fin> fin_next_;
         // Forward vertex of fin
-        Handle vertex_;
+        Handle<Vertex> vertex_;
         // Next fin around edge (clockwise looking along edge)
-        Handle fin_next_on_edge_;
+        Handle<Fin> fin_next_on_edge_;
         // Edge of the fin
-        Handle edge_;
+        Handle<Edge> edge_;
         // Next fin in list referencing `vertex_`
-        Handle fin_next_at_vertex_;
+        Handle<Fin> fin_next_at_vertex_;
         // Orientation relative to to the edge
         bool sense_;
     };
@@ -87,13 +95,13 @@ namespace prometheus::topology {
 
         Body* body_;
         // UID of node
-        Handle id_;
+        NodeId id_;
         // Arbitrary fin in loop
-        Handle fin_;
+        Handle<Fin> fin_;
         // Next loop in face
-        Handle loop_next_in_face_;
+        Handle<Loop> loop_next_in_face_;
         // Owning face
-        Handle face_;
+        Handle<Face> face_;
     };
 
     class Face {
@@ -104,25 +112,25 @@ namespace prometheus::topology {
 
         Body* body_;
         // UID of node
-        Handle id_;
+        NodeId id_;
         // Previous back-face of shell
-        Handle face_prev_in_back_shell_;
+        Handle<Face> face_prev_in_back_shell_;
         // Next back-face of shell
-        Handle face_next_in_back_shell_;
+        Handle<Face> face_next_in_back_shell_;
         // Previous front-face of shell
-        Handle face_prev_in_front_shell_;
+        Handle<Face> face_prev_in_front_shell_;
         // Next front-face of shell
-        Handle face_next_in_front_shell_;
+        Handle<Face> face_next_in_front_shell_;
         // Shell for which this is a back-face
-        Handle shell_back_;
+        Handle<Shell> shell_back_;
         // Shell for which this is a front-face
-        Handle shell_front_;
+        Handle<Shell> shell_front_;
         // Previous face on surface
-        Handle face_prev_on_surface_;
+        Handle<Face> face_prev_on_surface_;
         // Next face on surface
-        Handle face_next_on_surface_;
+        Handle<Face> face_next_on_surface_;
         // Surface
-        Handle surface_;
+        Handle<Surface> surface_;
         // Orientation w.r.t surface
         bool sense_;
 
@@ -136,17 +144,17 @@ namespace prometheus::topology {
 
         Body* body_;
         // UID of node
-        Handle id_;
+        NodeId id_;
         // Prev Shell in Region
-        Handle shell_prev_in_region_;
+        Handle<Shell> shell_prev_in_region_;
         // Next Shell in Region 
-        Handle shell_next_in_region_;
+        Handle<Shell> shell_next_in_region_;
         // Head of linked-list of back faces
-        Handle faces_back_;
+        Handle<Face> faces_back_;
         // Head of linked-list of front-faces
-        Handle faces_front_;
+        Handle<Face> faces_front_;
         // Region of shell
-        Handle region_;
+        Handle<Region> region_;
     };
 
 
@@ -158,9 +166,9 @@ namespace prometheus::topology {
 
         Body* body_;
         // UID of node
-        Handle id_;
+        NodeId id_;
         // Head of linked-list of shells
-        Handle shell_;
+        Handle<Shell> shell_;
         // Solid or void
         RegionType type_;
         

@@ -9,7 +9,7 @@ target_include_directories(prometheus_topology
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-target_link_libraries(prometheus_topology PUBLIC armadillo)
+target_link_libraries(prometheus_topology PUBLIC armadillo prometheus_geometry)
 
 if(BUILD_TESTING)
     add_executable(topology_tests
