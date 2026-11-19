@@ -1,6 +1,8 @@
 #ifndef SCHEMA_HPP_
 #define SCHEMA_HPP_
 
+#include <concepts>
+#include <functional>
 #include <memory>
 
 #include "chains.hpp"
@@ -252,7 +254,56 @@ class Body {
       return type_;
     }
 
+    template <typename Visitor>
+        requires std::invocable<Visitor &, Handle<Vertex>>
+    void for_each_vertex(Visitor visitor) {
+        for_each_handle(vertices_, visitor);
+    }
+
+    template <typename Visitor>
+        requires std::invocable<Visitor &, Handle<Edge>>
+    void for_each_edge(Visitor visitor) {
+        for_each_handle(edges_, visitor);
+    }
+
+    template <typename Visitor>
+        requires std::invocable<Visitor &, Handle<Fin>>
+    void for_each_fin(Visitor visitor) {
+        for_each_handle(fins_, visitor);
+    }
+
+    template <typename Visitor>
+        requires std::invocable<Visitor &, Handle<Loop>>
+    void for_each_loop(Visitor visitor) {
+        for_each_handle(loops_, visitor);
+    }
+
+    template <typename Visitor>
+        requires std::invocable<Visitor &, Handle<Face>>
+    void for_each_face(Visitor visitor) {
+        for_each_handle(faces_, visitor);
+    }
+
+    template <typename Visitor>
+        requires std::invocable<Visitor &, Handle<Shell>>
+    void for_each_shell(Visitor visitor) {
+        for_each_handle(shells_, visitor);
+    }
+
+    template <typename Visitor>
+        requires std::invocable<Visitor &, Handle<Region>>
+    void for_each_region(Visitor visitor) {
+        for_each_handle(regions_, visitor);
+    }
+
     private: 
+
+    template <typename T, typename Visitor>
+    static void for_each_handle(SlotPool<T> &pool, Visitor &visitor) {
+        for (auto it = pool.begin(); it != pool.end(); ++it) {
+            std::invoke(visitor, it.handle());
+        }
+    }
 
     template <typename T> Handle<T> addTopology(SlotPool<T> &pool);
     Modeller *modeller_{};
