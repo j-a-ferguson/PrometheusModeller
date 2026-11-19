@@ -10,6 +10,7 @@ target_link_libraries(prometheus_topology PUBLIC prometheus_common prometheus_ge
 if(BUILD_TESTING)
     add_executable(topology_tests
         src/test_schema.cpp
+        src/test_schema_json.cpp
         src/test_index_resource.cpp
         src/test_slot_pool.cpp
     )

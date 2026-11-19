@@ -9,6 +9,7 @@
 #include "common.hpp"
 #include "curves.hpp"
 #include "index_resource.hpp"
+#include "json_formatter.hpp"
 #include "node_id.hpp"
 #include "slot_pool.hpp"
 #include "surfaces.hpp"
@@ -334,6 +335,56 @@ class Modeller {
 };
 //.................................................................................................
 
+// Node output keeps links as pool-local handles and omits the owning body pointer.
+void to_json(nlohmann::json &json, const PointNode &node);
+void to_json(nlohmann::json &json, const CurveNode &node);
+void to_json(nlohmann::json &json, const SurfaceNode &node);
+void to_json(nlohmann::json &json, const Vertex &node);
+void to_json(nlohmann::json &json, const Edge &node);
+void to_json(nlohmann::json &json, const Fin &node);
+void to_json(nlohmann::json &json, const Loop &node);
+void to_json(nlohmann::json &json, const Face &node);
+void to_json(nlohmann::json &json, const Shell &node);
+void to_json(nlohmann::json &json, const Region &node);
+void to_json(nlohmann::json &json, RegionType type);
+void to_json(nlohmann::json &json, BodyType type);
+
 } // namespace prometheus::topology
+
+template <> struct std::formatter<prometheus::topology::PointNode, char>
+    : prometheus::JsonFormatter<prometheus::topology::PointNode> {};
+
+template <> struct std::formatter<prometheus::topology::CurveNode, char>
+    : prometheus::JsonFormatter<prometheus::topology::CurveNode> {};
+
+template <> struct std::formatter<prometheus::topology::SurfaceNode, char>
+    : prometheus::JsonFormatter<prometheus::topology::SurfaceNode> {};
+
+template <> struct std::formatter<prometheus::topology::Vertex, char>
+    : prometheus::JsonFormatter<prometheus::topology::Vertex> {};
+
+template <> struct std::formatter<prometheus::topology::Edge, char>
+    : prometheus::JsonFormatter<prometheus::topology::Edge> {};
+
+template <> struct std::formatter<prometheus::topology::Fin, char>
+    : prometheus::JsonFormatter<prometheus::topology::Fin> {};
+
+template <> struct std::formatter<prometheus::topology::Loop, char>
+    : prometheus::JsonFormatter<prometheus::topology::Loop> {};
+
+template <> struct std::formatter<prometheus::topology::Face, char>
+    : prometheus::JsonFormatter<prometheus::topology::Face> {};
+
+template <> struct std::formatter<prometheus::topology::Shell, char>
+    : prometheus::JsonFormatter<prometheus::topology::Shell> {};
+
+template <> struct std::formatter<prometheus::topology::Region, char>
+    : prometheus::JsonFormatter<prometheus::topology::Region> {};
+
+template <> struct std::formatter<prometheus::topology::RegionType, char>
+    : prometheus::JsonFormatter<prometheus::topology::RegionType> {};
+
+template <> struct std::formatter<prometheus::topology::BodyType, char>
+    : prometheus::JsonFormatter<prometheus::topology::BodyType> {};
 
 #endif

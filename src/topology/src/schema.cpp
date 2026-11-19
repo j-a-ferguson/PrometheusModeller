@@ -9,6 +9,122 @@
 
 namespace prometheus::topology {
 
+void to_json(nlohmann::json &json, const PointNode &node) {
+    json = {
+        {"id", node.id},
+        {"point", node.point},
+    };
+}
+
+void to_json(nlohmann::json &json, const CurveNode &node) {
+    json = {
+        {"id", node.id},
+        {"has_curve", static_cast<bool>(node.curve)},
+    };
+}
+
+void to_json(nlohmann::json &json, const SurfaceNode &node) {
+    json = {
+        {"id", node.id},
+        {"has_surface", static_cast<bool>(node.surface)},
+    };
+}
+
+void to_json(nlohmann::json &json, const Vertex &node) {
+    json = {
+        {"id", node.id},
+        {"point_node", node.point_node},
+        {"fin", node.fin},
+    };
+}
+
+void to_json(nlohmann::json &json, const Edge &node) {
+    json = {
+        {"id", node.id},
+        {"fin", node.fin},
+        {"curve", node.curve},
+        {"sense", node.sense},
+    };
+}
+
+void to_json(nlohmann::json &json, const Fin &node) {
+    json = {
+        {"id", node.id},
+        {"loop", node.loop},
+        {"fin_prev", node.fin_prev},
+        {"fin_next", node.fin_next},
+        {"vertex", node.vertex},
+        {"fin_next_on_edge", node.fin_next_on_edge},
+        {"edge", node.edge},
+        {"fin_next_at_vertex", node.fin_next_at_vertex},
+        {"sense", node.sense},
+    };
+}
+
+void to_json(nlohmann::json &json, const Loop &node) {
+    json = {
+        {"id", node.id},
+        {"fin", node.fin},
+        {"loop_next_in_face", node.loop_next_in_face},
+        {"face", node.face},
+        {"is_outer", node.is_outer},
+    };
+}
+
+void to_json(nlohmann::json &json, const Face &node) {
+    json = {
+        {"id", node.id},
+        {"loop", node.loop},
+        {"face_prev_in_back_shell", node.face_prev_in_back_shell},
+        {"face_next_in_back_shell", node.face_next_in_back_shell},
+        {"face_prev_in_front_shell", node.face_prev_in_front_shell},
+        {"face_next_in_front_shell", node.face_next_in_front_shell},
+        {"shell_back", node.shell_back},
+        {"shell_front", node.shell_front},
+        {"face_prev_on_surface", node.face_prev_on_surface},
+        {"face_next_on_surface", node.face_next_on_surface},
+        {"surface", node.surface},
+        {"sense", node.sense},
+    };
+}
+
+void to_json(nlohmann::json &json, const Shell &node) {
+    json = {
+        {"id", node.id},
+        {"shell_prev_in_region", node.shell_prev_in_region},
+        {"shell_next_in_region", node.shell_next_in_region},
+        {"faces_back", node.faces_back},
+        {"faces_front", node.faces_front},
+        {"region", node.region},
+    };
+}
+
+void to_json(nlohmann::json &json, const Region &node) {
+    json = {
+        {"id", node.id},
+        {"shell", node.shell},
+        {"type", node.type},
+    };
+}
+
+void to_json(nlohmann::json &json, RegionType type) {
+    switch (type) {
+    case RegionType::Solid: json = "Solid"; return;
+    case RegionType::Void: json = "Void"; return;
+    }
+    throw std::invalid_argument("Unknown RegionType");
+}
+
+void to_json(nlohmann::json &json, BodyType type) {
+    switch (type) {
+    case BodyType::ManifoldSolid: json = "ManifoldSolid"; return;
+    case BodyType::ManifoldSheet: json = "ManifoldSheet"; return;
+    case BodyType::ManifoldWire: json = "ManifoldWire"; return;
+    case BodyType::General: json = "General"; return;
+    }
+    throw std::invalid_argument("Unknown BodyType");
+}
+
 Point &PointNode::geo() { return point; }
 
 const Point &PointNode::geo() const { return point; }

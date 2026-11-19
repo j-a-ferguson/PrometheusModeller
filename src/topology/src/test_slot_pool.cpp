@@ -6,6 +6,35 @@
 
 namespace prometheus::topology {
 
+TEST(SlotPool, NullHandleFormatsAsJsonNull) {
+    static_assert(std::formattable<Handle<int>, char>);
+    const Handle<int> handle;
+    const nlohmann::json json = handle;
+    EXPECT_TRUE(json.is_null());
+    EXPECT_EQ(std::format("{}", handle), json.dump());
+}
+
+TEST(SlotPool, HandleFormattingPreservesIdentityAfterSlotReuse) {
+    SlotPool<int> pool;
+    const auto original = pool.emplace(42);
+    const nlohmann::json expected = {{"index", original.index()}, {"generation", original.gen()}};
+    const nlohmann::json live = original;
+    EXPECT_EQ(live, expected);
+    EXPECT_EQ(std::format("{}", original), live.dump());
+
+    ASSERT_TRUE(pool.erase(original));
+    const auto replacement = pool.emplace(99);
+    ASSERT_EQ(replacement.index(), original.index());
+    ASSERT_NE(replacement.gen(), original.gen());
+    EXPECT_EQ(nlohmann::json(original), live);
+    EXPECT_EQ(std::format("{}", original), live.dump());
+
+    const nlohmann::json new_live = replacement;
+    EXPECT_EQ(new_live.at("index"), live.at("index"));
+    EXPECT_EQ(new_live.at("generation"), replacement.gen());
+    EXPECT_EQ(std::format("{}", replacement), new_live.dump());
+}
+
 TEST(SlotPool, BasicUse) {
 
     auto pool = SlotPool<int>::with_capacity(100);

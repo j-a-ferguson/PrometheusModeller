@@ -9,6 +9,15 @@
 
 namespace prometheus::primitives {
 
+void to_json(nlohmann::json &json, const CylinderForm &form) {
+    json = {
+        {"bottom", {form.bottom[0], form.bottom[1], form.bottom[2]}},
+        {"axis", {form.axis[0], form.axis[1], form.axis[2]}},
+        {"radius", form.radius},
+        {"height", form.height},
+    };
+}
+
 namespace {
 struct Builder {
 

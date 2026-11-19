@@ -1,4 +1,4 @@
 add_library(prometheus_common INTERFACE)
 target_include_directories(prometheus_common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(prometheus_common INTERFACE cxx_std_23)
-target_link_libraries(prometheus_common INTERFACE armadillo)
+target_link_libraries(prometheus_common INTERFACE armadillo nlohmann_json::nlohmann_json)

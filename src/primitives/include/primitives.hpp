@@ -2,6 +2,7 @@
 #define PRIMITIVES_HPP_
 
 #include "common.hpp"
+#include "json_formatter.hpp"
 #include "schema.hpp"
 #include "slot_pool.hpp"
 
@@ -18,8 +19,14 @@ struct CylinderForm{
     double radius;
     double height;
 };
+void to_json(nlohmann::json &json, const CylinderForm &form);
 Handle<Body> make_cyliner(Modeller& modeller, CylinderForm form);
 
 
-}
-#endif 
+} // namespace prometheus::primitives
+
+template <>
+struct std::formatter<prometheus::primitives::CylinderForm, char>
+    : prometheus::JsonFormatter<prometheus::primitives::CylinderForm> {};
+
+#endif

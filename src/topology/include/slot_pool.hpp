@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.hpp"
+#include "json_formatter.hpp"
 #include "surfaces.hpp"
 
 #include <cstddef>
@@ -49,6 +50,14 @@ template <typename T> class Handle {
     Index index_{NULL_INDEX};
     Generation gen_{NULL_GEN};
 };
+
+template <typename T> void to_json(nlohmann::json &json, const Handle<T> &handle) {
+    if (handle.is_null()) {
+        json = nullptr;
+        return;
+    }
+    json = {{"index", handle.index()}, {"generation", handle.gen()}};
+}
 
 template <typename T> class SlotPool {
 
@@ -142,3 +151,7 @@ template <typename T> class SlotPool {
     void require_same_pool(Handle<T> handle) const;
 };
 } // namespace prometheus::topology
+
+template <typename T>
+struct std::formatter<prometheus::topology::Handle<T>, char>
+    : prometheus::JsonFormatter<prometheus::topology::Handle<T>> {};
