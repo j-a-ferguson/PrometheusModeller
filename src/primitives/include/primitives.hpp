@@ -9,6 +9,7 @@
 namespace prometheus::primitives {
 
 using namespace topology;
+using namespace geometry;
 
 
 struct CylinderForm{

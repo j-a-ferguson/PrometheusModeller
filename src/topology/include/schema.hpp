@@ -27,7 +27,6 @@ using Point = Vec3;
 //.................................................................................................
 
 struct PointNode {
-    PointNode(Point value) : point{std::move(value)} {}
 
     Point &geo();
     const Point &geo() const;
@@ -39,7 +38,6 @@ struct PointNode {
 //.................................................................................................
 
 struct CurveNode : public geometry::CurveBase {
-    CurveNode(NodeId node_id, std::unique_ptr<geometry::CurveBase> geometry_value);
 
     Vec3 eval(double t) const override;
     Vec3 diff(double t, int order = 1) const override;
@@ -59,7 +57,6 @@ struct CurveNode : public geometry::CurveBase {
 //.................................................................................................
 
 struct SurfaceNode : public geometry::SurfaceBase {
-    SurfaceNode(NodeId node_id, std::unique_ptr<geometry::SurfaceBase> geometry_value);
 
     Vec3 eval(double u, double v) const override;
     Vec3 diff(double u, double v, int order_u, int order_v) const override;
@@ -145,6 +142,8 @@ struct Loop {
     Handle<Loop> loop_next_in_face;
     // Owning face
     Handle<Face> face;
+    // flag whether outer loop or inner
+    bool is_outer;
 };
 
 // start of chain is Face::loop
@@ -218,13 +217,26 @@ struct Region {
     Handle<Shell> shell;
     // Solid or void
     RegionType type;
+
+
+    void make_solid() {
+      type = RegionType::Solid;    
+    }
+
+    void make_void() {
+      type = RegionType::Void;
+    }
 };
 //.................................................................................................
 
-enum class BodyType { ManifoldSolid, ManifoldSheet, ManifoldWire, NonManifold };
+enum class BodyType { ManifoldSolid, ManifoldSheet, ManifoldWire, General };
 //.................................................................................................
 
-struct Body {
+class Body {
+    friend class Modeller;
+
+    public: 
+
     Handle<Vertex> addVertex();
     Handle<Edge> addEdge();
     Handle<Fin> addFin();
@@ -232,41 +244,42 @@ struct Body {
     Handle<Face> addFace();
     Handle<Shell> addShell();
     Handle<Region> addRegion();
-    Handle<PointNode> addPoint(Point point);
-    Handle<CurveNode> addCurve(geometry::Curve curve);
-    Handle<SurfaceNode> addSurface(geometry::Surface surface);
+    Handle<PointNode> addPoint();
+    Handle<CurveNode> addCurve();
+    Handle<SurfaceNode> addSurface();
+
+    BodyType type() const {
+      return type_;
+    }
+
+    private: 
 
     template <typename T> Handle<T> addTopology(SlotPool<T> &pool);
-
-    Modeller *modeller{};
-
-    NodeId id;
-
-    // topology
-    SlotPool<Vertex> vertices;
-    SlotPool<Edge> edges;
-    SlotPool<Fin> fins;
-    SlotPool<Loop> loops;
-    SlotPool<Face> faces;
-    SlotPool<Shell> shells;
-    SlotPool<Region> regions;
-
-    // geometry
-    SlotPool<PointNode> points;
-    SlotPool<CurveNode> curves;
-    SlotPool<SurfaceNode> surfaces;
+    Modeller *modeller_{};
+    NodeId id_;
+    BodyType type_;
+    SlotPool<Vertex> vertices_;
+    SlotPool<Edge> edges_;
+    SlotPool<Fin> fins_;
+    SlotPool<Loop> loops_;
+    SlotPool<Face> faces_;
+    SlotPool<Shell> shells_;
+    SlotPool<Region> regions_;
+    SlotPool<PointNode> points_;
+    SlotPool<CurveNode> curves_;
+    SlotPool<SurfaceNode> surfaces_;
 };
 //.................................................................................................
 
 class Modeller {
-    friend struct Body;
+    friend class Body;
 
   public:
     Handle<Body> add_body();
 
   private:
     IndexResource node_id_resource_;
-    SlotPool<Body> bodies;
+    SlotPool<Body> bodies_;
 };
 //.................................................................................................
 

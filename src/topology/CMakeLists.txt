@@ -1,6 +1,7 @@
 add_library(prometheus_topology STATIC
-    src/schema.cpp
     src/index_resource.cpp
+    src/operations.cpp
+    src/schema.cpp
     src/slot_pool.cpp
 )
 target_include_directories(prometheus_topology PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

@@ -14,13 +14,6 @@ Point &PointNode::geo() { return point; }
 const Point &PointNode::geo() const { return point; }
 //.................................................................................................
 
-CurveNode::CurveNode(NodeId node_id, std::unique_ptr<geometry::CurveBase> geometry_value)
-    : id(node_id), curve(std::move(geometry_value)) {
-    if (!curve) {
-        throw std::invalid_argument("CurveNode requires a curve");
-    }
-}
-
 Vec3 CurveNode::eval(double t) const { return curve->eval(t); }
 
 Vec3 CurveNode::diff(double t, int order) const { return curve->diff(t, order); }
@@ -40,12 +33,6 @@ geometry::CurveBase &CurveNode::geo() { return *curve; }
 const geometry::CurveBase &CurveNode::geo() const { return *curve; }
 //.................................................................................................
 
-SurfaceNode::SurfaceNode(NodeId node_id, std::unique_ptr<geometry::SurfaceBase> geometry_value)
-    : id(node_id), surface(std::move(geometry_value)) {
-    if (!surface) {
-        throw std::invalid_argument("SurfaceNode requires a surface");
-    }
-}
 
 Vec3 SurfaceNode::eval(double u, double v) const { return surface->eval(u, v); }
 
@@ -78,68 +65,68 @@ const Point &Vertex::point() { return point_node.get().geo(); }
 //.................................................................................................
 
 template <typename T> Handle<T> Body::addTopology(SlotPool<T> &pool) {
-    if (!modeller) {
+    if (!modeller_) {
         throw std::logic_error("Body has no owning modeller");
     }
     auto handle = pool.emplace();
     auto &node = handle.get();
     node.body = this;
-    node.id = modeller->node_id_resource_.acquire_id();
+    node.id = modeller_->node_id_resource_.acquire_id();
     return handle;
 }
 
-Handle<Vertex> Body::addVertex() { return addTopology(vertices); }
+Handle<Vertex> Body::addVertex() { return addTopology(vertices_); }
 
-Handle<Edge> Body::addEdge() { return addTopology(edges); }
+Handle<Edge> Body::addEdge() { return addTopology(edges_); }
 
-Handle<Fin> Body::addFin() { return addTopology(fins); }
+Handle<Fin> Body::addFin() { return addTopology(fins_); }
 
-Handle<Loop> Body::addLoop() { return addTopology(loops); }
+Handle<Loop> Body::addLoop() { return addTopology(loops_); }
 
-Handle<Face> Body::addFace() { return addTopology(faces); }
+Handle<Face> Body::addFace() { return addTopology(faces_); }
 
-Handle<Shell> Body::addShell() { return addTopology(shells); }
+Handle<Shell> Body::addShell() { return addTopology(shells_); }
 
-Handle<Region> Body::addRegion() { return addTopology(regions); }
+Handle<Region> Body::addRegion() { return addTopology(regions_); }
 
-Handle<PointNode> Body::addPoint(Point point) {
-    if (!modeller) {
+Handle<PointNode> Body::addPoint() {
+    if (!modeller_) {
         throw std::logic_error("Body has no owning modeller");
     }
-    auto handle = points.emplace(point);
+    auto handle = points_.emplace();
     auto &node = handle.get();
     node.body = this;
-    node.id = modeller->node_id_resource_.acquire_id();
+    node.id = modeller_->node_id_resource_.acquire_id();
     return handle;
 }
-Handle<CurveNode> Body::addCurve(geometry::Curve curve) {
-    if (!modeller) {
+Handle<CurveNode> Body::addCurve() {
+    if (!modeller_) {
         throw std::logic_error("Body has no owning modeller");
     }
-    auto node_id = modeller->node_id_resource_.acquire_id();
-    auto handle = curves.emplace(node_id, std::move(curve));
+    auto handle = curves_.emplace();
     auto &node = handle.get();
     node.body = this;
+    node.id = modeller_->node_id_resource_.acquire_id();
     return handle;
 }
-Handle<SurfaceNode> Body::addSurface(geometry::Surface surface) {
+Handle<SurfaceNode> Body::addSurface() {
 
-    if (!modeller) {
+    if (!modeller_) {
         throw std::logic_error("Body has no owning modeller");
     }
-    auto node_id = modeller->node_id_resource_.acquire_id();
-    auto handle = surfaces.emplace(node_id, std::move(surface));
+    auto handle = surfaces_.emplace();
     auto &node = handle.get();
     node.body = this;
+    node.id = modeller_->node_id_resource_.acquire_id();
     return handle;
 }
 //.................................................................................................
 
 Handle<Body> Modeller::add_body() {
 
-    Handle<Body> handle = bodies.emplace();
-    handle.get().modeller = this;
-    handle.get().id = node_id_resource_.acquire_id();
+    Handle<Body> handle = bodies_.emplace();
+    handle.get().modeller_ = this;
+    handle.get().id_ = node_id_resource_.acquire_id();
     return handle;
 }
 //.................................................................................................

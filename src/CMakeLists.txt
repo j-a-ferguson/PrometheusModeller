@@ -7,6 +7,7 @@ add_subdirectory(common)
 add_subdirectory(geometry)
 add_subdirectory(topology)
 add_subdirectory(primitives)
+add_subdirectory(validate)
 
 add_library(prometheus_modeller STATIC modeller.cpp)
 target_link_libraries(prometheus_modeller

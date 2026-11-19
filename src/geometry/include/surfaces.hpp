@@ -4,6 +4,8 @@
 #include "../../common/include/common.hpp"
 
 #include <utility>
+#include <memory>
+#include <concepts>
 
 namespace prometheus::geometry {
 
@@ -129,6 +131,12 @@ private:
     Vec3 z_axis_{0.0, 0.0, 1.0};
     double radius_ = 1.0;
 };
+
+template <std::derived_from<SurfaceBase> T, class... Args>
+    requires std::constructible_from<T, Args...>
+[[nodiscard]] Surface make_surface(Args&&... args) {
+    return std::make_unique<T>(std::forward<Args>(args)...);
+}
 
 } // namespace prometheus::geometry
 
