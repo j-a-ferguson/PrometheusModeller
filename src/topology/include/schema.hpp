@@ -335,7 +335,7 @@ class Modeller {
 };
 //.................................................................................................
 
-// Node output keeps links as pool-local handles and omits the owning body pointer.
+// Node links serialize as target node IDs. Absent links are null, and stale links throw.
 void to_json(nlohmann::json &json, const PointNode &node);
 void to_json(nlohmann::json &json, const CurveNode &node);
 void to_json(nlohmann::json &json, const SurfaceNode &node);

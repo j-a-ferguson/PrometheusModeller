@@ -36,14 +36,15 @@ TEST(Primitives, make_cylinder) {
                                                     .height = 5.0,
                                                     .radius = 1.0});
 
-    body.get().for_each_fin([](Handle<Fin> fin){
-        std::println("{}", fin.get());
-    });
-    body.get().for_each_edge([](Handle<Edge> edge){
-        std::println("{}", edge.get());
-    });
-
-    
+    auto &cylinder = body.get();
+    const auto print_node = [](const auto &handle) { std::println("{}", handle.get()); };
+    cylinder.for_each_vertex(print_node);
+    cylinder.for_each_fin(print_node);
+    cylinder.for_each_edge(print_node);
+    cylinder.for_each_loop(print_node);
+    cylinder.for_each_face(print_node);
+    cylinder.for_each_shell(print_node);
+    cylinder.for_each_region(print_node);
 }
 
 } // namespace prometheus::primitives
