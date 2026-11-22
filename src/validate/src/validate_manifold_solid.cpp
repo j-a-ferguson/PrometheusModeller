@@ -1,6 +1,6 @@
 #include "schema.hpp"
 #include "slot_pool.hpp"
-// #include "inplace_vector.hpp"
+#include "inplace_vector.hpp"
 #include "validate_internal.hpp"
 
 #include <algorithm>
@@ -10,6 +10,8 @@
 
 
 namespace prometheus::validate::internal {
+
+using namespace containers;
 
 void validate_null_or_stale(Body &body, Result &res) {
     body.for_each_node([&res](auto handle) {
@@ -38,14 +40,15 @@ void validate_edge_fins_counts(Body& body, Result& res)
 
 void validate_edge_fin_orient(Body& body, Result& res) 
 {
-    std::vector<Handle<Fin>> fins;
-    fins.reserve(5);
-
+    InplaceVector<Handle<Fin>, 16> fins; 
     body.for_each_edge([&](Handle<Edge> edge){
+        edge.get().for_each_fin([&](auto fin){
+            fins.push_back(fin);
+        });
 
-        // edge.get().for_each_fin([&](Handle<Fin> fin){
-        //     fin_counts[fin] += 1;       
-        // });
+        if (fins.size() != 2 || fins[0].get().vertex == fins[1].get().vertex) {
+            res.add_error(ErrorCode::EdgeWrongFinOrientation);
+        }
     });
 }
 

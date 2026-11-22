@@ -38,13 +38,49 @@ TEST(Primitives, make_cylinder) {
 
     auto &cylinder = body.get();
     const auto print_node = [](const auto &handle) { std::println("{}", handle.get()); };
-    cylinder.for_each_vertex(print_node);
-    cylinder.for_each_fin(print_node);
-    cylinder.for_each_edge(print_node);
-    cylinder.for_each_loop(print_node);
-    cylinder.for_each_face(print_node);
-    cylinder.for_each_shell(print_node);
-    cylinder.for_each_region(print_node);
+    // cylinder.for_each_vertex(print_node);
+    // cylinder.for_each_fin(print_node);
+    // cylinder.for_each_edge(print_node);
+    // cylinder.for_each_loop(print_node);
+    // cylinder.for_each_face(print_node);
+    // cylinder.for_each_shell(print_node);
+
+    cylinder.for_each_region([print_node](Handle<Region> region) {
+
+        std::println("************************************************************* region");
+        print_node(region);
+        region.get().for_each_shell([print_node](Handle<Shell> shell){
+            std::println(".......................... shell");
+            print_node(shell);
+            shell.get().for_each_back_face([print_node](Handle<Face> face){
+                std::println(".......................... face");
+                print_node(face);
+                face.get().for_each_loop([print_node](Handle<Loop> loop){
+                    std::println(".......................... loop");
+                    print_node(loop);
+                    loop.get().for_each_fin([print_node](Handle<Fin> fin){
+                        print_node(fin);
+                        auto edge = fin.get().edge;
+                        print_node(edge);
+                    });
+                });
+            });
+            shell.get().for_each_front_face([print_node](Handle<Face> face){
+                std::println(".......................... face");
+                print_node(face);
+                face.get().for_each_loop([print_node](Handle<Loop> loop){
+                    std::println(".......................... loop");
+                    print_node(loop);
+                    loop.get().for_each_fin([print_node](Handle<Fin> fin){
+                        print_node(fin);
+                        auto edge = fin.get().edge;
+                        print_node(edge);
+                    });
+                });
+            });
+
+        });            
+    });
 }
 
 } // namespace prometheus::primitives

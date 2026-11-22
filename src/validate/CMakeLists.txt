@@ -11,7 +11,7 @@ target_include_directories(prometheus_validate
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     )
 
-target_link_libraries(prometheus_validate PUBLIC prometheus_common prometheus_geometry prometheus_topology)
+target_link_libraries(prometheus_validate PUBLIC prometheus_common prometheus_containers prometheus_geometry prometheus_topology)
 
 
 if(BUILD_TESTING)
