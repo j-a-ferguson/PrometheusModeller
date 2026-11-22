@@ -4,6 +4,7 @@ target_compile_features(prometheus_api INTERFACE cxx_std_23)
 target_link_libraries(prometheus_api INTERFACE armadillo)
 
 add_subdirectory(common)
+add_subdirectory(containers)
 add_subdirectory(geometry)
 add_subdirectory(topology)
 add_subdirectory(primitives)
