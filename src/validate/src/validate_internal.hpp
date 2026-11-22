@@ -17,8 +17,13 @@ using namespace geometry;
 #define ERROR_LIST(X)                                                                              \
     X(EntityNull, "is null")                                                                       \
     X(EntityStale, "is stale")                                                                     \
+    /* Edge-Fin Errors */                                                                          \
+    X(EdgeFinLinkBroken, "Edge-fin link broken")                                                   \
     X(EdgeTooManyFins, "has more than 2 fins")                                                     \
-    X(EdgeWrongFinOrientation, "has fins with the same direction")
+    X(EdgeWrongFinOrientation, "has fins with the same direction")                                 \
+    X(EdgeDuplicateFin, "has duplicate fins")                                                      \
+    /* Face-Loop Errors*/                                                                          \
+    X(FaceLoopLinkBroken, "Edge-fin link broken")
 
 enum class ErrorCode : std::uint16_t {
 #define X(code, msg) code,
