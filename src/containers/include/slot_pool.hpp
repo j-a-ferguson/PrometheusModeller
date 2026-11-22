@@ -1,10 +1,155 @@
-#include "slot_pool.hpp"
+#pragma once
 
-#include "schema.hpp"
+#include "common.hpp"
+#include "json_formatter.hpp"
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <iterator>
+#include <limits>
+#include <memory>
 #include <stdexcept>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 namespace prometheus::topology {
+
+using Index = std::size_t;
+constexpr Index NULL_INDEX = std::numeric_limits<Index>::max();
+using Generation = std::uint32_t;
+constexpr Generation NULL_GEN =  std::numeric_limits<Generation>::max();
+
+template <typename T> class SlotPool;
+
+template <typename T> class Handle {
+
+  public:
+    Handle() = default;
+    Handle(SlotPool<T> &pool, Index index, Generation gen);
+    bool operator==(const Handle<T>& other) const = default;
+
+    static Handle<T> null() {
+      Handle<T> null_handle;
+      return null_handle;
+    };
+
+    T &get();
+    const T &get() const;
+    const Index &index() const;
+    const Generation &gen() const;
+    void nullify();
+    bool is_null() const;
+    bool is_stale() const;
+
+  private:
+    friend class SlotPool<T>;
+
+    SlotPool<T> *pool_{nullptr};
+    Index index_{NULL_INDEX};
+    Generation gen_{NULL_GEN};
+};
+
+template <typename T> void to_json(nlohmann::json &json, const Handle<T> &handle) {
+    if (handle.is_null()) {
+        json = nullptr;
+        return;
+    }
+    json = {{"index", handle.index()}, {"generation", handle.gen()}};
+}
+
+template <typename T> class SlotPool {
+
+    friend class Handle<T>;
+
+  private:
+    struct Slot {
+        // next is active when slot is free, value is active when live
+        union {
+            Index next;
+            T value;
+        };
+        // generation number, even is free, odd is live
+        Generation gen{0};
+
+        bool is_live() const;
+        Slot();
+        Slot(Slot &&other) noexcept(std::is_nothrow_move_constructible_v<T>);
+        ~Slot();
+        Slot(const Slot &) = delete;
+        Slot &operator=(const Slot &) = delete;
+        Slot &operator=(Slot &&) = delete;
+    };
+
+    template <bool Const> class Iter {
+        using SlotPtr = std::conditional_t<Const, const Slot *, Slot *>;
+        using SlotPoolPtr = std::conditional_t<Const, const SlotPool *, SlotPool *>;
+
+        SlotPoolPtr pool_{nullptr};
+        SlotPtr start_{nullptr};
+        SlotPtr cur_{nullptr};
+        SlotPtr end_{nullptr};
+        void skip_free();
+
+      public:
+        using iterator_concept = std::forward_iterator_tag;
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = T;
+        using difference_type = std::ptrdiff_t;
+        using reference = std::conditional_t<Const, const T &, T &>;
+        using pointer = std::conditional_t<Const, const T *, T *>;
+
+        Iter() = default;
+        Iter(SlotPoolPtr pool, SlotPtr start, SlotPtr cur, SlotPtr end);
+        operator Iter<true>() const requires (!Const);
+        reference operator*() const;
+        pointer operator->() const;
+        Iter &operator++();
+        Iter operator++(int);
+        bool operator==(const Iter &other) const;
+        Handle<T> handle() const requires (!Const);
+    };
+
+    std::vector<Slot> slots_;
+    static constexpr Index no_slot = std::numeric_limits<Index>::max();
+    Index head_ = no_slot;
+
+    Slot *find(Handle<T> h);
+    const Slot *find(Handle<T> h) const;
+    Index acquire_index();
+    void release_index(Index i);
+    Handle<T> emplace_with(const std::function<void(T *)> &construct);
+
+  public:
+    using iterator = Iter<false>;
+    using const_iterator = Iter<true>;
+
+    SlotPool() = default;
+    SlotPool(const SlotPool &) = delete;
+    SlotPool &operator=(const SlotPool &) = delete;
+    SlotPool(SlotPool &&) = default;
+    SlotPool &operator=(SlotPool &&) = default;
+
+    static SlotPool<T> with_capacity(std::size_t capacity);
+
+    iterator begin();
+    iterator end();
+    const_iterator cbegin() const;
+    const_iterator cend() const;
+
+    template <typename... Args> Handle<T> emplace(Args &&...args) {
+        return emplace_with([&](T *storage) {
+            std::construct_at(storage, std::forward<Args>(args)...);
+        });
+    }
+
+    bool erase(Handle<T> handle);
+    OptRef<T> get(Handle<T> handle);
+    ConstOptRef<T> get(Handle<T> handle) const;
+    bool is_stale(Handle<T> handle) const;
+    void require_same_pool(Handle<T> handle) const;
+};
 
 template <typename T>
 Handle<T>::Handle(SlotPool<T> &pool, Index index, Generation gen)
@@ -241,26 +386,8 @@ template <typename T> auto SlotPool<T>::require_same_pool(Handle<T> handle) cons
     }
 }
 
-#define INSTANTIATE_SLOT_POOL(Type)                                                                \
-    template class Handle<Type>;                                                                   \
-    template class SlotPool<Type>;                                                                 \
-    template class SlotPool<Type>::Iter<false>;                                                    \
-    template class SlotPool<Type>::Iter<true>
-
-INSTANTIATE_SLOT_POOL(Vertex);
-INSTANTIATE_SLOT_POOL(Edge);
-INSTANTIATE_SLOT_POOL(Fin);
-INSTANTIATE_SLOT_POOL(Loop);
-INSTANTIATE_SLOT_POOL(Face);
-INSTANTIATE_SLOT_POOL(Shell);
-INSTANTIATE_SLOT_POOL(Region);
-INSTANTIATE_SLOT_POOL(Body);
-INSTANTIATE_SLOT_POOL(Vec3);
-INSTANTIATE_SLOT_POOL(PointNode);
-INSTANTIATE_SLOT_POOL(CurveNode);
-INSTANTIATE_SLOT_POOL(SurfaceNode);
-INSTANTIATE_SLOT_POOL(int);
-
-#undef INSTANTIATE_SLOT_POOL
-
 } // namespace prometheus::topology
+
+template <typename T>
+struct std::formatter<prometheus::topology::Handle<T>, char>
+    : prometheus::JsonFormatter<prometheus::topology::Handle<T>> {};
