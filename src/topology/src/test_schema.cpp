@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 #include <initializer_list>
+#include <set>
 
 namespace prometheus::topology {
 
@@ -25,6 +26,22 @@ TEST(Schema, BodyCreatesEachTopologyInItsOwnPool) {
     check_pool(&Body::addFace);
     check_pool(&Body::addShell);
     check_pool(&Body::addRegion);
+}
+
+TEST(Schema, ForEachNodeVisitsEveryBodyNodeOnce) {
+    Modeller modeller;
+    auto &body = modeller.add_body().get();
+    std::set<NodeId> remaining{
+        body.addVertex().get().id, body.addEdge().get().id, body.addFin().get().id,
+        body.addLoop().get().id, body.addFace().get().id, body.addShell().get().id,
+        body.addRegion().get().id, body.addPoint().get().id, body.addCurve().get().id,
+        body.addSurface().get().id,
+    };
+
+    body.for_each_node([&](auto handle) {
+        EXPECT_EQ(remaining.erase(handle.get().id), 1u);
+    });
+    EXPECT_TRUE(remaining.empty());
 }
 
 TEST(Schema, FinChainsCanBeEditedIndependently) {

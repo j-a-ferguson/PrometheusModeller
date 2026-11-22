@@ -78,32 +78,7 @@ struct SurfaceNode : public geometry::SurfaceBase {
 };
 //.................................................................................................
 
-struct Vertex {
-    const Point &point();
 
-    Body *body;
-    // UID of node
-    NodeId id;
-    // Point of vertex
-    Handle<PointNode> point_node;
-    // Head of singly-linked chain of fins referencing this vertex
-    Handle<Fin> fin;
-};
-//.................................................................................................
-
-struct Edge {
-    Body *body;
-    // UID of node
-    NodeId id;
-    // Head of singly-linked chain of fins around edge
-    Handle<Fin> fin;
-    // Underlying curve
-    Handle<CurveNode> curve;
-    // Orientation relative to curve
-    bool sense;
-};
-
-//.................................................................................................
 
 struct Fin {
     Body *body;
@@ -125,6 +100,7 @@ struct Fin {
     Handle<Fin> fin_next_at_vertex;
     // Orientation relative to to the edge
     bool sense;
+
 };
 
 // head of chain is Vertex::fin;
@@ -133,6 +109,44 @@ using VertexFins = SinglyLinked<Fin, &Fin::fin_next_at_vertex>;
 using EdgeFins = SinglyLinked<Fin, &Fin::fin_next_on_edge>;
 // start of circular chain is Loop::fin
 using LoopFins = DoublyLinked<Fin, &Fin::fin_next, &Fin::fin_prev, ChainShape::circular>;
+//.................................................................................................
+
+struct Vertex {
+    const Point &point();
+
+    Body *body;
+    // UID of node
+    NodeId id;
+    // Point of vertex
+    Handle<PointNode> point_node;
+    // Head of singly-linked chain of fins referencing this vertex
+    Handle<Fin> fin;
+
+    template <typename Visitor>
+    void for_each_fin(Visitor visitor) {
+        VertexFins::for_each(fin, visitor);
+    }
+};
+//.................................................................................................
+
+struct Edge {
+    Body *body;
+    // UID of node
+    NodeId id;
+    // Head of singly-linked chain of fins around edge
+    Handle<Fin> fin;
+    // Underlying curve
+    Handle<CurveNode> curve;
+    // Orientation relative to curve
+    bool sense;
+
+    template <typename Visitor>
+    void for_each_fin(Visitor visitor) {
+        EdgeFins::for_each(fin, visitor);
+    }
+
+};
+
 //.................................................................................................
 
 struct Loop {
@@ -147,6 +161,11 @@ struct Loop {
     Handle<Face> face;
     // flag whether outer loop or inner
     bool is_outer;
+
+    template <typename Visitor>
+    void for_each_fin(Visitor visitor) {
+        LoopFins::for_each(fin, visitor);
+    }
 };
 
 // start of chain is Face::loop
@@ -179,6 +198,12 @@ struct Face {
     Handle<SurfaceNode> surface;
     // Orientation w.r.t surface
     bool sense;
+
+    template <typename Visitor>
+    void for_each_loop(Visitor visitor) {
+        FaceLoops::for_each(loop, visitor);
+    }
+
 };
 
 // head of chain is Shell::faces_back
@@ -203,6 +228,18 @@ struct Shell {
     Handle<Face> faces_front;
     // Region of shell
     Handle<Region> region;
+
+    template <typename Visitor>
+        requires std::invocable<Visitor&, Handle<Face>>
+    void for_each_front_face(Visitor visitor) {
+        ShellFrontFaces::for_each(faces_front, visitor);
+    }
+
+    template <typename Visitor>
+        requires std::invocable<Visitor&, Handle<Face>>
+    void for_each_back_face(Visitor visitor) {
+        ShellFrontFaces::for_each(faces_back, visitor);
+    }
 };
 
 // head of chain is Region::shells
@@ -221,6 +258,11 @@ struct Region {
     // Solid or void
     RegionType type;
 
+    template <typename Visitor>
+        requires std::invocable<Visitor&, Handle<Shell>>
+    void for_each_shell(Visitor visitor) {
+        RegionShells::for_each(shell, visitor);
+    }
 
     void make_solid() {
       type = RegionType::Solid;    
@@ -295,6 +337,20 @@ class Body {
         requires std::invocable<Visitor &, Handle<Region>>
     void for_each_region(Visitor visitor) {
         for_each_handle(regions_, visitor);
+    }
+
+    template <typename Visitor>
+    void for_each_node(Visitor visitor) {
+        for_each_handle(vertices_, visitor);
+        for_each_handle(edges_, visitor);
+        for_each_handle(fins_, visitor);
+        for_each_handle(loops_, visitor);
+        for_each_handle(faces_, visitor);
+        for_each_handle(shells_, visitor);
+        for_each_handle(regions_, visitor);
+        for_each_handle(points_, visitor);
+        for_each_handle(curves_, visitor);
+        for_each_handle(surfaces_, visitor);
     }
 
     private: 
@@ -386,5 +442,17 @@ template <> struct std::formatter<prometheus::topology::RegionType, char>
 
 template <> struct std::formatter<prometheus::topology::BodyType, char>
     : prometheus::JsonFormatter<prometheus::topology::BodyType> {};
+
+template <typename Node>
+    requires requires(const Node& node) {
+        { node.id } -> std::same_as<const prometheus::topology::NodeId&>;
+    }
+
+struct std::hash<prometheus::topology::Handle<Node>> {
+    std::size_t operator()(const prometheus::topology::Handle<Node>& handle) const {
+        using namespace prometheus::topology;
+        return std::hash<NodeId>{}(handle.get().id);
+    }
+};
 
 #endif

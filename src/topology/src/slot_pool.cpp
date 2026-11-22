@@ -53,6 +53,12 @@ template <typename T> bool Handle<T>::is_null() const {
     throw std::logic_error("Corrupted internal state");
 }
 
+template <typename T> bool Handle<T>::is_stale() const {
+    if (!pool_)
+        throw std::logic_error("Handle is null");
+    return !pool_->get(*this).has_value();
+}
+
 template <typename T> auto SlotPool<T>::Slot::is_live() const -> bool { return gen & 1; }
 
 template <typename T> SlotPool<T>::Slot::Slot() : next{no_slot} {}

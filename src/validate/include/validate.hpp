@@ -2,19 +2,17 @@
 #define VALIDATE_HPP_
 
 #include "schema.hpp"
+#include "../src/validate_internal.hpp"
 
 namespace prometheus::validate {
 
 using namespace topology;
 using namespace geometry;
 
-struct Result {
-    bool ok;
-};
-
+using internal::Result;
+using internal::ErrorInfo;
+using internal::ErrorCode;
 Result validate(Handle<Body> body);
-
-
 
 }
 

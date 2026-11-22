@@ -20,6 +20,7 @@ void attach_vertex_to_fin(Handle<Vertex> vertex, Handle<Fin> fin) {
 void attach_fins_to_edge(Handle<Edge> edge, std::vector<FinSense> fins_senses) {
 
     for (auto &[fin, sense] : fins_senses) {
+        fin.get().edge = edge;
         fin.get().sense = sense;
         EdgeFins::push_front(edge.get().fin, fin);
     }
@@ -42,9 +43,9 @@ void attach_loops_to_face(Handle<Face> face, std::vector<Handle<Loop>> loops, in
 
     int i{0};
     for (auto &loop : loops) {
-        bool is_outer = (outer == i);
         FaceLoops::push_front(face.get().loop, loop);
         loop.get().face = face;
+        loop.get().is_outer = (outer == i);
         ++i;
     }
 }
@@ -70,14 +71,26 @@ void attach_shells_to_region(Handle<Region> region, std::vector<Handle<Shell>> s
     }
 }
 
-void attach_geometry(Handle<PointNode> point_node, Point point) { point_node.get().point = point; }
+void attach_point(Handle<PointNode> point_node, Point point) { point_node.get().point = point; }
 
-void attach_geometry(Handle<CurveNode> curve_node, Curve curve) {
+void attach_geometry(Handle<Vertex> vertex, Handle<PointNode> point_node) {
+    vertex.get().point_node = point_node;
+}
+
+void attach_curve(Handle<CurveNode> curve_node, Curve curve) {
     curve_node.get().curve = std::move(curve);
 }
 
-void attach_geometry(Handle<SurfaceNode> surface_node, Surface surface) {
+void attach_geometry(Handle<Edge> edge, Handle<CurveNode> curve_node) {
+    edge.get().curve = curve_node;
+}
+
+void attach_surface(Handle<SurfaceNode> surface_node, Surface surface) {
     surface_node.get().surface = std::move(surface);
+}
+
+void attach_geometry(Handle<Face> face, Handle<SurfaceNode> surface_node) {
+    face.get().surface = surface_node;
 }
 
 } // namespace prometheus::topology

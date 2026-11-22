@@ -103,6 +103,7 @@ void make_cylinder_topology(Builder& b) {
 
     // outer unbounded region
     attach_shells_to_region(b.regions[0], {b.shells[0]});
+    b.regions[0].get().make_void();
     // inner bounded region
     attach_shells_to_region(b.regions[1], {b.shells[1]});
     b.regions[1].get().make_solid();
@@ -121,11 +122,12 @@ void make_cylinder_geometry(Builder& b, CylinderForm form) {
     auto cylinder_side = make_surface<Cylinder>(form.bottom, form.axis, form.height);
     auto top_disc = make_surface<Plane>(top_disc_center, top_disc_normal);
 
-    attach_geometry(b.curves[0], std::move(bottom_circle));
-    attach_geometry(b.curves[1], std::move(top_circle));
-    attach_geometry(b.surfaces[0], std::move(bottom_disc));
-    attach_geometry(b.surfaces[1], std::move(cylinder_side));
-    attach_geometry(b.surfaces[2], std::move(top_disc));
+    attach_curve(b.curves[0], std::move(bottom_circle));
+    attach_geometry(b.edges[0], b.curves[0]);
+    attach_curve(b.curves[1], std::move(top_circle));
+    attach_surface(b.surfaces[0], std::move(bottom_disc));
+    attach_surface(b.surfaces[1], std::move(cylinder_side));
+    attach_surface(b.surfaces[2], std::move(top_disc));
 }
 
 } // namespace

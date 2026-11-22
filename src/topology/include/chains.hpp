@@ -7,11 +7,29 @@ namespace prometheus::topology {
 
 enum class ChainShape { linear, circular };
 
+template<class Node, Handle<Node> Node::*Next, ChainShape Shape>
+struct ChainTraversal {
+    template<class Visitor>
+        requires std::invocable<Visitor&, Handle<Node>>
+    static void for_each(Handle<Node> head, Visitor&& visitor) {
+        auto current = head;
+        while (!current.is_null()) {
+            std::invoke(visitor, Handle<Node>{current});
+            current = current.get().*Next;
+
+            if constexpr (Shape == ChainShape::circular) {
+                if (current == head)
+                    break;
+            }
+        }
+    }
+};
+
 template<class Node,
          Handle<Node> Node::*Next,
          Handle<Node> Node::*Prev,
          ChainShape Shape>
-struct DoublyLinked {
+struct DoublyLinked: ChainTraversal<Node, Next, Shape> {
     using H = Handle<Node>;
 
     // item must be detached from this particular chain.
@@ -63,7 +81,7 @@ struct DoublyLinked {
 };
 
 template<class Node, Handle<Node> Node::*Next>
-struct SinglyLinked {
+struct SinglyLinked:  ChainTraversal<Node, Next, ChainShape::linear> {
     using H = Handle<Node>;
 
     // item must be detached from this chain.

@@ -42,6 +42,7 @@ template <typename T> class Handle {
     const Generation &gen() const;
     void nullify();
     bool is_null() const;
+    bool is_stale() const;
 
   private:
     friend class SlotPool<T>;

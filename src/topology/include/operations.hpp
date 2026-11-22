@@ -47,11 +47,17 @@ void attach_back_faces_to_shell(Handle<Shell> shell, std::vector<Handle<Face>> f
 
 void attach_shells_to_region(Handle<Region> region, std::vector<Handle<Shell>> shells);
 
-void attach_geometry(Handle<PointNode> vertex, Point point);
+void attach_point(Handle<PointNode> vertex, Point point);
 
-void attach_geometry(Handle<CurveNode> vertex, Curve curve);
+void attach_geometry(Handle<Vertex> vertex, Handle<PointNode> point_node);
 
-void attach_geometry(Handle<SurfaceNode> vertex, Surface surface);
+void attach_curve(Handle<CurveNode> vertex, Curve curve);
+
+void attach_geometry(Handle<Edge> edge, Handle<CurveNode> curve_node);
+
+void attach_surface(Handle<SurfaceNode> vertex, Surface surface);
+
+void attach_geometry(Handle<Face> face, Handle<SurfaceNode> surface_node);
 
 } // namespace prometheus::topology
 

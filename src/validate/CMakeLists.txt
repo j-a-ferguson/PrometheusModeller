@@ -1,7 +1,16 @@
-add_library(prometheus_validate STATIC src/validate.cpp)
+add_library(prometheus_validate STATIC 
+    src/validate.cpp 
+    src/validate_general.cpp 
+    src/validate_manifold_sheet.cpp 
+    src/validate_manifold_solid.cpp 
+    src/validate_manifold_wire.cpp)
 
 
-target_include_directories(prometheus_validate PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(prometheus_validate 
+    PUBLIC 
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+
 target_link_libraries(prometheus_validate PUBLIC prometheus_common prometheus_geometry prometheus_topology)
 
 
