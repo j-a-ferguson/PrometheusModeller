@@ -3,7 +3,7 @@
 #include "../../common/include/common.hpp"
 #include "../../geometry/include/curves.hpp"
 #include "../../geometry/include/surfaces.hpp"
-#include "../../topology/include/node_id.hpp"
+#include "../../common/include/node_id.hpp"
 
 namespace prometheus {
 
