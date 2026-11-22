@@ -3,9 +3,7 @@
 #include "inplace_vector.hpp"
 #include "validate_internal.hpp"
 
-#include <algorithm>
 #include <cstddef>
-#include <unordered_map>
 
 
 
@@ -13,29 +11,26 @@ namespace prometheus::validate::internal {
 
 using namespace containers;
 
-void validate_null_or_stale(Body &body, Result &res) {
-    body.for_each_node([&res](auto handle) {
-        if (handle.is_null()) {
-            res.add_error(ErrorCode::EntityNull);
-        } else if (handle.is_stale()) {
-            res.add_error(ErrorCode::EntityStale);
+void validate_fin_edge_links(Body &body, Result &res) {
+    body.for_each_fin([&res](Handle<Fin> handle) {
+        const Fin &fin = handle.get();
+        if (fin.edge.is_null()) {
+            res.add_error(ErrorCode::EntityNull, fin, "edge");
+        } else if (fin.edge.is_stale()) {
+            res.add_error(ErrorCode::EntityStale, fin, "edge");
         }
     });
 }
 
-void validate_edge_fins_counts(Body& body, Result& res)
-{
-    std::unordered_map<Handle<Fin>, size_t> fin_counts; 
-    body.for_each_edge([&](Handle<Edge> edge){
-        edge.get().for_each_fin([&](Handle<Fin> fin){
-            fin_counts[fin] += 1;       
-        });
-    });
-    for(const auto& [fin, count] : fin_counts) {
-        if(count != 1) {
-            res.add_error(ErrorCode::EdgeTooManyFins);
+void validate_edge_fins_counts(Body &body, Result &res) {
+    body.for_each_edge([&res](Handle<Edge> handle) {
+        Edge &edge = handle.get();
+        std::size_t count = 0;
+        edge.for_each_fin([&count](Handle<Fin>) { ++count; });
+        if (count > 2) {
+            res.add_error(ErrorCode::EdgeTooManyFins, edge);
         }
-    }
+    });
 }
 
 void validate_edge_fin_orient(Body& body, Result& res) 
@@ -47,7 +42,7 @@ void validate_edge_fin_orient(Body& body, Result& res)
         });
 
         if (fins.size() != 2 || fins[0].get().vertex == fins[1].get().vertex) {
-            res.add_error(ErrorCode::EdgeWrongFinOrientation);
+            res.add_error(ErrorCode::EdgeWrongFinOrientation, edge.get());
         }
     });
 }
@@ -59,7 +54,7 @@ void validate_edge_fins(Body& body, Result& res) {
 
 Result validate_manifold_solid(Body &body) {
     Result res;
-    validate_null_or_stale(body, res);
+    validate_fin_edge_links(body, res);
     if(!res.is_ok()) {
         return res;
     }

@@ -4,6 +4,9 @@
 #include "schema.hpp"
 
 #include <cstddef>
+#include <cstdint>
+#include <format>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -12,10 +15,10 @@ using namespace topology;
 using namespace geometry;
 
 #define ERROR_LIST(X)                                                                              \
-    X(EntityNull, "Entity {} with id {} is null")                                                  \
-    X(EntityStale, "Entity {} with id {} is stale")                                                 \
-    X(EdgeTooManyFins, "Manifold edge {} has more than 2 fins")                                    \
-    X(EdgeWrongFinOrientation, "Manifold edge {} fins with same direction")
+    X(EntityNull, "is null")                                                                       \
+    X(EntityStale, "is stale")                                                                     \
+    X(EdgeTooManyFins, "has more than 2 fins")                                                     \
+    X(EdgeWrongFinOrientation, "has fins with the same direction")
 
 enum class ErrorCode : std::uint16_t {
 #define X(code, msg) code,
@@ -36,12 +39,36 @@ inline constexpr ErrorInfo error_table[]{
 
 constexpr const ErrorInfo &info(ErrorCode code) { return error_table[static_cast<size_t>(code)]; }
 
-struct Result {
-    std::vector<ErrorInfo> errors;
+constexpr std::string_view node_name(const Edge &) { return "Edge"; }
+constexpr std::string_view node_name(const Fin &) { return "Fin"; }
 
-    bool is_ok() { return errors.empty(); }
-    void add_error(ErrorCode code) {
-        errors.push_back(info(code));
+struct NodeDetails {
+    std::string_view name;
+    NodeId id;
+};
+
+struct Diagnostic {
+    ErrorCode code;
+    NodeDetails node;
+    std::string member;
+
+    [[nodiscard]] std::string message() const {
+        const auto description = info(code).message;
+        if (member.empty()) {
+            return std::format("{} {} {}", node.name, node.id, description);
+        }
+        return std::format("{} {}.{} {}", node.name, node.id, member, description);
+    }
+};
+
+struct Result {
+    std::vector<Diagnostic> errors;
+
+    [[nodiscard]] bool is_ok() const { return errors.empty(); }
+
+    template <typename Node>
+    void add_error(ErrorCode code, const Node &node, std::string_view member = {}) {
+        errors.push_back({code, {node_name(node), node.id}, std::string(member)});
     }
 };
 
